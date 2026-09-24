@@ -1,0 +1,12 @@
+{
+  "title": "LifeSync — Інтелектуальний Life & Task Manager",
+  "description": "LifeSync — персональний асистент продуктивності, таск-менеджер, фінанси та синхронізація з Google Workspace.",
+  "language": "uk",
+  "robots": {
+    "index": true
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

@@ -1,0 +1,12 @@
+# Cloudflare Pages & D1 Configuration
+name = "lifesync-app"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-09-01"
+
+# Cloudflare D1 Database Binding
+# 1. Створіть базу даних: npx wrangler d1 create lifesync-db
+# 2. Вставте отриманий database_id нижче:
+[[d1_databases]]
+binding = "DB"
+database_name = "lifesync-db"
+database_id = "00000000-0000-0000-0000-000000000000" # Замініть на ваш ID з npx wrangler d1 create
