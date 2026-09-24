@@ -9,4 +9,4 @@ compatibility_date = "2026-09-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "lifesync-db"
-database_id = "00000000-0000-0000-0000-000000000000" # Замініть на ваш ID з npx wrangler d1 create
+database_id = "b765f8b6-2189-40c2-88ac-7376682c6f3f"
