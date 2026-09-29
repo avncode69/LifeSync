@@ -27,14 +27,7 @@ const TYPE_META: Record<EventType, { label: string; color: string; icon: string 
 
 const nowYMD = toYMD(new Date());
 
-const INITIAL_EVENTS: CalEvent[] = [
-  { id: 'ce1', title: 'Стендап з командою', date: nowYMD, startTime: '09:30', endTime: '10:00', type: 'meeting', color: '#7C3AED', attendees: ['Максим', 'Ірина', 'Денис'], googleId: 'g1' },
-  { id: 'ce2', title: 'Зустріч з клієнтом BioTech', date: nowYMD, startTime: '14:00', endTime: '15:30', type: 'meeting', color: '#7C3AED', location: 'Google Meet', attendees: ['Олег Коваленко'], googleId: 'g2' },
-  { id: 'ce3', title: 'Дзвінок з інвестором', date: nowYMD, startTime: '17:30', endTime: '18:00', type: 'call', color: '#06B6D4', attendees: ['Viktor Shevchenko'], googleId: 'g3' },
-  { id: 'ce4', title: 'Презентація Q4 стратегії', date: addDays(new Date(), 1).toISOString().slice(0, 10), startTime: '11:00', endTime: '12:30', type: 'meeting', color: '#7C3AED', location: 'Zoom', googleId: 'g4' },
-  { id: 'ce5', title: 'Дедлайн: ревью коду', date: addDays(new Date(), 1).toISOString().slice(0, 10), startTime: '18:00', endTime: '18:00', type: 'deadline', color: '#EF4444', googleId: 'g5' },
-  { id: 'ce6', title: 'Спортзал', date: addDays(new Date(), 2).toISOString().slice(0, 10), startTime: '07:00', endTime: '08:00', type: 'personal', color: '#10B981' },
-];
+const INITIAL_EVENTS: CalEvent[] = [];
 
 const DAYS_UK = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const MONTHS_UK = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];

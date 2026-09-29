@@ -120,18 +120,8 @@ export default function Header({ section, user, onOpenSettings }: Props) {
               />
               <kbd className="px-1.5 py-0.5 rounded text-xs font-mono" style={{ background: 'var(--hover-bg)', color: 'var(--text-muted)' }}>ESC</kbd>
             </div>
-            <div className="p-4 space-y-1">
-              {['Підготувати презентацію для інвесторів', 'Ревью коду модуля авторизації', 'Стендап з командою — 09:30'].map((r, i) => (
-                <div
-                  key={i}
-                  className="px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 cursor-pointer"
-                  style={{ color: 'var(--text-secondary)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{i < 2 ? '✓' : '📅'}</span> {r}
-                </div>
-              ))}
+            <div className="p-4">
+              <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>Почніть вводити для пошуку…</p>
             </div>
           </div>
         </div>

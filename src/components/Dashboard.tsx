@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { TASKS, EVENTS, AREA_DATA, DEFAULT_PINNED_DOCS } from '../data/seed';
-import { type Task, type PinnedDoc } from '../types';
+import { type Task, type PinnedDoc, type CalendarEvent, type Transaction } from '../types';
 import TaskEditModal from './TaskEditModal';
 
 const PRIORITY_COLOR = { high: '#EF4444', medium: '#F59E0B', low: '#10B981' };
@@ -14,14 +13,17 @@ const DOC_TYPE_LABEL: Record<string, string> = {
 };
 
 const QUICK_TAGS = ['📋 Задача', '📅 Подія', '💸 Витрата'];
+const TX_CATEGORIES = ['Зарплата', 'Фріланс', 'Їжа', 'Підписки', 'Сервери', 'Навчання', 'Транспорт', 'Розваги', 'Інше'];
 
 interface Props {
   tasks: Task[];
   onUpdateTasks: (tasks: Task[]) => void;
   pinnedDocs?: PinnedDoc[];
   onUpdatePinnedDocs?: (docs: PinnedDoc[]) => void;
-  events?: any[];
+  events?: CalendarEvent[];
   balance?: number;
+  transactions?: Transaction[];
+  onUpdateTransactions?: (txs: Transaction[]) => void;
 }
 
 export default function Dashboard({
@@ -29,14 +31,17 @@ export default function Dashboard({
   onUpdateTasks,
   pinnedDocs: externalPinnedDocs,
   onUpdatePinnedDocs,
-  balance = 91780,
+  events: externalEvents,
+  balance = 0,
+  transactions = [],
+  onUpdateTransactions,
 }: Props) {
   const [quickInput, setQuickInput] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [tasksCollapsed, setTasksCollapsed] = useState(false);
   const [eventsCollapsed, setEventsCollapsed] = useState(false);
-  const [internalPinnedDocs, setInternalPinnedDocs] = useState<PinnedDoc[]>(DEFAULT_PINNED_DOCS);
+  const [internalPinnedDocs, setInternalPinnedDocs] = useState<PinnedDoc[]>([]);
   const pinnedDocs = externalPinnedDocs || internalPinnedDocs;
 
   const updatePinnedDocs = (next: PinnedDoc[]) => {
@@ -47,11 +52,21 @@ export default function Dashboard({
   const [showLinkMenu, setShowLinkMenu] = useState<string | null>(null);
   const [addingTransaction, setAddingTransaction] = useState(false);
 
+  // Transaction form state
+  const [txType, setTxType] = useState<'income' | 'expense'>('expense');
+  const [txNote, setTxNote] = useState('');
+  const [txAmount, setTxAmount] = useState('');
+  const [txCategory, setTxCategory] = useState('Інше');
+
+  // Add doc form
+  const [showAddDoc, setShowAddDoc] = useState(false);
+  const [newDocName, setNewDocName] = useState('');
+  const [newDocType, setNewDocType] = useState<'gdocs' | 'gsheets' | 'gmail' | 'gdrive' | 'url'>('url');
+
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
-  const dateStr = today.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-  const todayTasks = tasks.filter(t => !t.deadline || t.deadline <= todayStr || t.deadline === '2026-09-24');
+  const todayTasks = tasks.filter(t => !t.deadline || t.deadline <= todayStr);
   const pendingTasks = todayTasks.filter(t => !t.done);
 
   const toggleTask = (id: string) => {
@@ -68,15 +83,69 @@ export default function Dashboard({
 
   const handleQuickAdd = () => {
     if (!quickInput.trim()) return;
-    const newTask: Task = {
-      id: `t${Date.now()}`,
-      title: quickInput,
-      done: false,
-      priority: 'medium',
-      deadline: todayStr,
-    };
-    onUpdateTasks([...tasks, newTask]);
+
+    if (activeTag === '💸 Витрата' && onUpdateTransactions) {
+      // Parse as transaction: try to extract amount
+      const match = quickInput.match(/(\d+)/);
+      const amount = match ? parseInt(match[1]) : 0;
+      const note = quickInput.replace(/\d+/g, '').trim() || quickInput;
+      const newTx: Transaction = {
+        id: `tr${Date.now()}`,
+        type: 'expense',
+        amount: amount || 100,
+        currency: 'UAH',
+        category: 'Інше',
+        date: todayStr,
+        note,
+      };
+      onUpdateTransactions([newTx, ...transactions]);
+    } else {
+      const newTask: Task = {
+        id: `t${Date.now()}`,
+        title: quickInput,
+        done: false,
+        priority: 'medium',
+        deadline: todayStr,
+      };
+      onUpdateTasks([...tasks, newTask]);
+    }
     setQuickInput('');
+    setActiveTag(null);
+  };
+
+  const handleAddTransaction = () => {
+    if (!txNote.trim() || !txAmount || !onUpdateTransactions) return;
+    const newTx: Transaction = {
+      id: `tr${Date.now()}`,
+      type: txType,
+      amount: parseFloat(txAmount),
+      currency: 'UAH',
+      category: txCategory,
+      date: todayStr,
+      note: txNote,
+    };
+    onUpdateTransactions([newTx, ...transactions]);
+    setTxNote('');
+    setTxAmount('');
+    setTxCategory('Інше');
+    setAddingTransaction(false);
+  };
+
+  const handleAddDoc = () => {
+    if (!newDocName.trim()) return;
+    const newDoc: PinnedDoc = {
+      id: `doc${Date.now()}`,
+      name: newDocName,
+      type: newDocType,
+      pinned: true,
+    };
+    updatePinnedDocs([...pinnedDocs, newDoc]);
+    setNewDocName('');
+    setShowAddDoc(false);
+  };
+
+  const deleteDoc = (docId: string) => {
+    updatePinnedDocs(pinnedDocs.filter(d => d.id !== docId));
   };
 
   const togglePin = (docId: string) => {
@@ -88,6 +157,21 @@ export default function Dashboard({
     ...pinnedDocs.filter(d => d.pinned),
     ...pinnedDocs.filter(d => !d.pinned),
   ];
+
+  // Compute chart data from transactions
+  const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+  const dayNames = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  const chartData = weekDays.map(day => {
+    const dayTxs = transactions.filter(t => {
+      const d = new Date(t.date);
+      return dayNames[d.getDay()] === day;
+    });
+    return {
+      day,
+      income: dayTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
+      expense: dayTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
+    };
+  });
 
   return (
     <div className="h-full overflow-y-auto p-4 section-enter">
@@ -103,7 +187,6 @@ export default function Dashboard({
                 {today.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' })}
               </h2>
             </div>
-            <button className="w-7 h-7 rounded-lg hover:bg-white/8 text-slate-500 hover:text-slate-300 text-sm flex items-center justify-center transition-all">⋯</button>
           </div>
 
           {/* Tasks section */}
@@ -117,6 +200,9 @@ export default function Dashboard({
             </button>
             {!tasksCollapsed && (
               <div className="space-y-1">
+                {todayTasks.length === 0 && (
+                  <p className="text-xs text-slate-600 py-2 text-center">Немає задач на сьогодні</p>
+                )}
                 {todayTasks.map(task => (
                   <div key={task.id} className="group flex items-start gap-2.5 px-2 py-1.5 rounded-xl hover:bg-white/3 transition-all relative">
                     <input type="checkbox" className="custom-check mt-0.5" checked={task.done} onChange={() => toggleTask(task.id)} />
@@ -138,8 +224,10 @@ export default function Dashboard({
                             style={{ background: 'var(--modal-bg)', border: '1px solid var(--input-border)', backdropFilter: 'blur(20px)' }}>
                             <p className="text-xs text-slate-500 px-2 py-1">Add Link</p>
                             {(['gdocs','gsheets','gmail','gdrive','url'] as const).map(type => (
-                              <button key={type} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/6 text-xs text-slate-300 transition-all">
-                                <span>{DOC_ICON[type]}</span> {DOC_TYPE_LABEL[type] === 'Docs' ? 'Google Docs' : DOC_TYPE_LABEL[type] === 'Sheets' ? 'Google Sheets' : DOC_TYPE_LABEL[type] === 'Gmail' ? 'Gmail' : DOC_TYPE_LABEL[type] === 'Drive' ? 'Google Drive' : 'Custom URL'}
+                              <button key={type}
+                                onClick={() => setShowLinkMenu(null)}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/6 text-xs text-slate-300 transition-all">
+                                <span>{DOC_ICON[type]}</span> {type === 'gdocs' ? 'Google Docs' : type === 'gsheets' ? 'Google Sheets' : type === 'gmail' ? 'Gmail' : type === 'gdrive' ? 'Google Drive' : 'Custom URL'}
                               </button>
                             ))}
                           </div>
@@ -159,7 +247,7 @@ export default function Dashboard({
                   </div>
                 ))}
                 <button
-                  onClick={() => onUpdateTasks([...tasks, { id: `t${Date.now()}`, title: 'Нова задача', done: false, priority: 'medium', deadline: '2026-09-24' }])}
+                  onClick={() => onUpdateTasks([...tasks, { id: `t${Date.now()}`, title: 'Нова задача', done: false, priority: 'medium', deadline: todayStr }])}
                   className="flex items-center gap-2 px-2 py-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
                 >
                   <span className="text-base">＋</span> Додати задачу
@@ -174,12 +262,15 @@ export default function Dashboard({
               onClick={() => setEventsCollapsed(!eventsCollapsed)}
               className="flex items-center gap-2 text-sm font-display font-600 text-slate-200 mb-2 w-full"
             >
-              <span>Calendar Events ({EVENTS.length})</span>
+              <span>Calendar Events ({(externalEvents || []).length})</span>
               <span className={`text-slate-500 text-xs transition-transform ${eventsCollapsed ? '-rotate-90' : ''}`}>▾</span>
             </button>
             {!eventsCollapsed && (
               <div className="space-y-1">
-                {EVENTS.map(ev => (
+                {(externalEvents || []).length === 0 && (
+                  <p className="text-xs text-slate-600 py-2 text-center">Немає подій</p>
+                )}
+                {(externalEvents || []).map(ev => (
                   <div key={ev.id} className="group flex items-center gap-3 px-2 py-1.5 rounded-xl hover:bg-white/3 transition-all">
                     <input type="checkbox" className="custom-check" />
                     <div className="flex-1 min-w-0">
@@ -187,13 +278,10 @@ export default function Dashboard({
                         <span className="text-sm text-slate-300 truncate">{ev.title}</span>
                       </div>
                     </div>
-                    <span className="text-xs font-mono text-violet-400">{ev.time}</span>
-                    <span className="text-base">{ev.type === 'meeting' ? '🤝' : '📞'}</span>
+                    <span className="text-xs font-mono" style={{ color: 'var(--primary)' }}>{ev.time}</span>
+                    <span className="text-base">{ev.type === 'meeting' ? '🤝' : ev.type === 'call' ? '📞' : '🔔'}</span>
                   </div>
                 ))}
-                <button className="flex items-center gap-2 px-2 py-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors">
-                  <span className="text-base">＋</span>
-                </button>
               </div>
             )}
           </div>
@@ -205,10 +293,48 @@ export default function Dashboard({
             <h3 className="font-display font-600 text-white text-sm">📌 Важливі документи</h3>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500">з задач</span>
-              <button className="text-xs text-violet-400 hover:text-violet-300 transition-colors">+ Додати</button>
+              <button
+                onClick={() => setShowAddDoc(!showAddDoc)}
+                className="text-xs transition-colors" style={{ color: 'var(--primary)' }}
+              >+ Додати</button>
             </div>
           </div>
+
+          {/* Add doc form */}
+          {showAddDoc && (
+            <div className="px-4 pb-2">
+              <div className="flex gap-2 flex-wrap p-3 rounded-xl" style={{ background: 'var(--subcard-bg)', border: '1px solid var(--border)' }}>
+                <input
+                  autoFocus
+                  value={newDocName}
+                  onChange={e => setNewDocName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddDoc()}
+                  placeholder="Назва документу…"
+                  className="flex-1 min-w-32 px-3 py-1.5 rounded-lg text-xs text-white placeholder-slate-600 outline-none"
+                  style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
+                />
+                <select
+                  value={newDocType}
+                  onChange={e => setNewDocType(e.target.value as any)}
+                  className="px-2 py-1.5 rounded-lg text-xs text-slate-300 outline-none"
+                  style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
+                >
+                  <option value="gdocs">📄 Docs</option>
+                  <option value="gsheets">📊 Sheets</option>
+                  <option value="gmail">📧 Gmail</option>
+                  <option value="gdrive">📁 Drive</option>
+                  <option value="url">🔗 URL</option>
+                </select>
+                <button onClick={handleAddDoc} className="px-3 py-1.5 rounded-lg text-xs text-white" style={{ background: 'color-mix(in srgb, var(--primary) 80%, transparent)' }}>✓</button>
+                <button onClick={() => setShowAddDoc(false)} className="px-2 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-300">✕</button>
+              </div>
+            </div>
+          )}
+
           <div className="px-4 pb-4 space-y-1.5">
+            {importantDocs.length === 0 && (
+              <p className="text-xs text-slate-600 py-4 text-center">Немає документів</p>
+            )}
             {importantDocs.map(doc => (
               <div key={doc.id} className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/4 transition-all cursor-pointer"
                 style={{ border: '1px solid transparent' }}
@@ -238,7 +364,11 @@ export default function Dashboard({
                   >
                     📌
                   </button>
-                  <button className="w-6 h-6 rounded-md flex items-center justify-center text-xs text-slate-500 hover:text-white transition-all">↗</button>
+                  <button
+                    onClick={e => { e.stopPropagation(); deleteDoc(doc.id); }}
+                    className="w-6 h-6 rounded-md flex items-center justify-center text-xs text-red-500 hover:bg-red-500/15 transition-all"
+                    title="Видалити"
+                  >✕</button>
                 </div>
                 {doc.pinned && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />}
               </div>
@@ -250,11 +380,6 @@ export default function Dashboard({
         <div className="rounded-2xl" style={{ background: 'var(--card)', border: '1px solid var(--border)', backdropFilter: 'blur(20px)' }}>
           <div className="flex items-center justify-between px-5 pt-4 pb-2">
             <h3 className="font-display font-600 text-white text-sm">⚡ Quick Input</h3>
-            <div className="flex items-center gap-1.5">
-              <button className="w-7 h-7 rounded-lg hover:bg-white/8 text-slate-500 hover:text-slate-300 text-sm flex items-center justify-center transition-all" title="Зберегти шаблон">💾</button>
-              <button className="w-7 h-7 rounded-lg hover:bg-white/8 text-slate-500 hover:text-slate-300 text-sm flex items-center justify-center transition-all" title="Прикріпити">🔗</button>
-              <button className="w-7 h-7 rounded-lg hover:bg-white/8 text-slate-500 hover:text-slate-300 text-sm flex items-center justify-center transition-all">⋯</button>
-            </div>
           </div>
           <div className="px-4 pb-4">
             <textarea
@@ -262,14 +387,10 @@ export default function Dashboard({
               onChange={e => setQuickInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleQuickAdd())}
               rows={3}
-              placeholder="Type a task, event, or transaction... (AI auto-completes)"
+              placeholder="Введіть задачу, подію або транзакцію…"
               className="w-full bg-transparent text-sm text-slate-200 placeholder-slate-600 outline-none resize-none leading-relaxed"
             />
             <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/6">
-              <button className="w-7 h-7 rounded-lg hover:bg-white/8 text-slate-500 hover:text-yellow-400 text-sm flex items-center justify-center transition-all" title="Emoji">😊</button>
-              <button className="w-7 h-7 rounded-lg hover:bg-white/8 text-slate-500 hover:text-blue-400 text-sm flex items-center justify-center transition-all" title="Прикріпити файл">📎</button>
-              <button className="w-7 h-7 rounded-lg hover:bg-white/8 text-slate-500 hover:text-slate-300 text-sm flex items-center justify-center transition-all" title="Теги">🏷️</button>
-
               <div className="flex-1 flex gap-1.5">
                 {QUICK_TAGS.map(tag => (
                   <button
@@ -277,10 +398,14 @@ export default function Dashboard({
                     onClick={() => setActiveTag(activeTag === tag ? null : tag)}
                     className={`px-2.5 py-1 rounded-lg text-xs transition-all ${
                       activeTag === tag
-                        ? 'bg-violet-600/25 text-violet-300 border-violet-500/40'
+                        ? ''
                         : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
                     }`}
-                    style={{ border: activeTag === tag ? '1px solid rgba(124,58,237,0.4)' : '1px solid rgba(255,255,255,0.07)' }}
+                    style={activeTag === tag ? {
+                      background: 'color-mix(in srgb, var(--primary) 25%, transparent)',
+                      color: 'var(--primary)',
+                      border: '1px solid color-mix(in srgb, var(--primary) 40%, transparent)',
+                    } : { border: '1px solid rgba(255,255,255,0.07)' }}
                   >
                     {tag}
                   </button>
@@ -289,8 +414,9 @@ export default function Dashboard({
 
               <button
                 onClick={handleQuickAdd}
-                className="px-4 py-1.5 rounded-xl text-sm font-display font-500 text-white transition-all"
-                style={{ background: 'rgba(124,58,237,0.8)', border: '1px solid rgba(124,58,237,0.5)' }}
+                disabled={!quickInput.trim()}
+                className="px-4 py-1.5 rounded-xl text-sm font-display font-500 text-white transition-all disabled:opacity-40"
+                style={{ background: 'color-mix(in srgb, var(--primary) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 50%, transparent)' }}
               >
                 Enter
               </button>
@@ -302,23 +428,22 @@ export default function Dashboard({
         <div className="rounded-2xl" style={{ background: 'var(--card)', border: '1px solid var(--border)', backdropFilter: 'blur(20px)' }}>
           <div className="flex items-center justify-between px-5 pt-4 pb-1">
             <h3 className="font-display font-600 text-white text-sm">💰 Financial Overview</h3>
-            <button className="w-7 h-7 rounded-lg hover:bg-white/8 text-slate-500 hover:text-slate-300 text-sm flex items-center justify-center transition-all">⋯</button>
           </div>
           <div className="px-5 pb-2">
             <div className="font-mono text-2xl font-600 text-white">{balance.toLocaleString('uk-UA')} ₴</div>
-            <div className="text-xs text-emerald-400">↑ +12.4% цього тижня</div>
+            <div className="text-xs text-slate-500">Фінансовий огляд</div>
           </div>
           <div className="h-28 px-2">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={AREA_DATA} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="dash-inc" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.4}/>
                     <stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="dash-exp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#7C3AED" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="day" tick={{ fontSize: 9, fill: '#334155' }} axisLine={false} tickLine={false} />
@@ -327,16 +452,20 @@ export default function Dashboard({
                   itemStyle={{ color: 'var(--text-secondary)' }}
                 />
                 <Area type="monotone" dataKey="income" stroke="#06B6D4" strokeWidth={1.5} fill="url(#dash-inc)" name="Дохід" />
-                <Area type="monotone" dataKey="expense" stroke="#7C3AED" strokeWidth={1.5} fill="url(#dash-exp)" name="Витрати" />
+                <Area type="monotone" dataKey="expense" stroke="var(--primary)" strokeWidth={1.5} fill="url(#dash-exp)" name="Витрати" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex items-center gap-3 px-5 pb-4 mt-1">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-emerald-400 hover:bg-emerald-500/10 transition-all"
+          <div className="flex items-center gap-3 px-5 pb-2 mt-1">
+            <button
+              onClick={() => { setTxType('income'); setAddingTransaction(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-emerald-400 hover:bg-emerald-500/10 transition-all"
               style={{ border: '1px solid rgba(16,185,129,0.25)' }}>
               ▲ Income
             </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-red-400 hover:bg-red-500/10 transition-all"
+            <button
+              onClick={() => { setTxType('expense'); setAddingTransaction(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-red-400 hover:bg-red-500/10 transition-all"
               style={{ border: '1px solid rgba(239,68,68,0.25)' }}>
               ▼ Expense
             </button>
@@ -345,17 +474,71 @@ export default function Dashboard({
               className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-cyan-400 hover:bg-cyan-500/10 transition-all"
               style={{ border: '1px solid rgba(6,182,212,0.3)' }}
             >
-              ↻ Transaction
+              + Транзакція
             </button>
           </div>
           {addingTransaction && (
             <div className="px-4 pb-4 pt-0 border-t border-white/5">
-              <div className="flex gap-2 mt-3">
-                <input placeholder="Назва" className="flex-1 px-3 py-1.5 rounded-lg text-xs text-white outline-none"
-                  style={{ background: 'var(--input-bg)', border: '1px solid rgba(255,255,255,0.09)' }} />
-                <input type="number" placeholder="Сума" className="w-24 px-3 py-1.5 rounded-lg text-xs text-white outline-none font-mono"
-                  style={{ background: 'var(--input-bg)', border: '1px solid rgba(255,255,255,0.09)' }} />
-                <button className="px-3 py-1.5 rounded-lg text-xs text-white" style={{ background: 'rgba(124,58,237,0.7)' }}>+</button>
+              <div className="space-y-2 mt-3">
+                {/* Type toggle */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setTxType('income')}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-display font-500 transition-all ${txType === 'income' ? 'text-emerald-300' : 'text-slate-500'}`}
+                    style={{
+                      background: txType === 'income' ? 'rgba(16,185,129,0.15)' : 'var(--input-bg)',
+                      border: `1px solid ${txType === 'income' ? 'rgba(16,185,129,0.4)' : 'var(--input-border)'}`,
+                    }}
+                  >▲ Дохід</button>
+                  <button
+                    onClick={() => setTxType('expense')}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-display font-500 transition-all ${txType === 'expense' ? 'text-red-300' : 'text-slate-500'}`}
+                    style={{
+                      background: txType === 'expense' ? 'rgba(239,68,68,0.15)' : 'var(--input-bg)',
+                      border: `1px solid ${txType === 'expense' ? 'rgba(239,68,68,0.4)' : 'var(--input-border)'}`,
+                    }}
+                  >▼ Витрата</button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={txNote}
+                    onChange={e => setTxNote(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddTransaction()}
+                    placeholder="Опис"
+                    className="flex-1 px-3 py-1.5 rounded-lg text-xs text-white outline-none"
+                    style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
+                    autoFocus
+                  />
+                  <input
+                    type="number"
+                    value={txAmount}
+                    onChange={e => setTxAmount(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddTransaction()}
+                    placeholder="Сума"
+                    className="w-24 px-3 py-1.5 rounded-lg text-xs text-white outline-none font-mono"
+                    style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={txCategory}
+                    onChange={e => setTxCategory(e.target.value)}
+                    className="flex-1 px-2 py-1.5 rounded-lg text-xs text-slate-300 outline-none"
+                    style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
+                  >
+                    {TX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <button
+                    onClick={handleAddTransaction}
+                    disabled={!txNote.trim() || !txAmount}
+                    className="px-4 py-1.5 rounded-lg text-xs text-white font-display font-500 disabled:opacity-40 transition-all"
+                    style={{ background: 'color-mix(in srgb, var(--primary) 80%, transparent)' }}
+                  >✓ Додати</button>
+                  <button
+                    onClick={() => setAddingTransaction(false)}
+                    className="px-2 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-300"
+                  >✕</button>
+                </div>
               </div>
             </div>
           )}

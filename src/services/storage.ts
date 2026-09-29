@@ -1,5 +1,4 @@
 import { type User, type Task, type Habit, type Transaction, type CalendarEvent, type PinnedDoc, type UserSettings } from '../types';
-import { TASKS, HABITS, TRANSACTIONS, EVENTS, DEFAULT_PINNED_DOCS } from '../data/seed';
 
 const CURRENT_USER_KEY = 'lifesync_current_user';
 const USERS_LIST_KEY = 'lifesync_registered_users';
@@ -76,14 +75,14 @@ export const StorageService = {
       // fallback
     }
 
-    // Default starter data
+    // Empty initial data - no seed data
     const initialData: UserFullData = {
-      tasks: TASKS,
-      habits: HABITS,
-      transactions: TRANSACTIONS,
-      events: EVENTS,
-      pinnedDocs: DEFAULT_PINNED_DOCS,
-      settings: { ...DEFAULT_USER_SETTINGS, nickname: 'Користувач' },
+      tasks: [],
+      habits: [],
+      transactions: [],
+      events: [],
+      pinnedDocs: [],
+      settings: { ...DEFAULT_USER_SETTINGS },
     };
     this.saveUserData(userId, initialData);
     return initialData;
@@ -91,7 +90,11 @@ export const StorageService = {
 
   saveUserData(userId: string, data: Partial<UserFullData>): void {
     try {
-      const current = this.getUserData(userId);
+      const existing = localStorage.getItem(DATA_PREFIX + userId);
+      const current = existing ? JSON.parse(existing) : {
+        tasks: [], habits: [], transactions: [], events: [], pinnedDocs: [],
+        settings: { ...DEFAULT_USER_SETTINGS },
+      };
       const merged = { ...current, ...data };
       localStorage.setItem(DATA_PREFIX + userId, JSON.stringify(merged));
     } catch (e) {

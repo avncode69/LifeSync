@@ -1,14 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { type Message } from '../types';
 
-const INIT_MESSAGES: Message[] = [
-  {
-    id: 'm0',
-    role: 'ai',
-    text: 'Привіт, Олексію! 👋 Я LifeSync AI — ваш персональний асистент. Сьогодні у вас 3 пріоритетні задачі та 2 зустрічі. Бажаєте, щоб я проаналізував ваш день та запропонував оптимальний розклад?',
-    time: '09:00',
-  },
-];
+
 
 const AI_SUGGESTIONS = [
   'Скільки я витратив цього тижня?',
@@ -18,10 +11,10 @@ const AI_SUGGESTIONS = [
 ];
 
 const QUICK_ANSWERS: Record<string, string> = {
-  'Скільки я витратив цього тижня?': '📊 За останній тиждень (18–24 вересня) ви витратили **10 670 ₴**:\n\n• Сервери: 4 500 ₴\n• Навчання: 2 800 ₴\n• Їжа: 1 270 ₴\n• Підписки: 1 200 ₴\n• Інше: 900 ₴\n\nЦе на 12% більше, ніж минулого тижня. Найбільша стаття — сервери (AWS EC2).',
-  'Які пріоритетні задачі горять до завтра?': '🔥 Критичні задачі до 25 вересня:\n\n1. **Підготувати презентацію для інвесторів** (Високий ✦)\n2. **Ревью коду модуля авторизації** (Високий ✦) — дедлайн сьогодні!\n\nРекомендую розпочати з ревью коду — воно блокує роботу команди. Час: ~2 год.',
-  'Оптимізуй мій розклад на сьогодні': '🗓️ Оптимальний розклад на 24 вересня:\n\n**09:00–09:30** → Стендап з командою (вже є в календарі)\n**09:30–11:30** → Ревью коду (поки є фокус)\n**11:30–12:00** → Перерва + Їжа\n**12:00–14:00** → Презентація для інвесторів\n**14:00–15:00** → Зустріч з BioTech (календар)\n**15:00–17:00** → Звіт Q3 аналітика\n**17:30** → Дзвінок з інвестором\n\n⚡ Без конфліктів за часом. Сприятлива продуктивність до 17:00.',
-  'Покажи звіт по звичках за місяць': '📈 Звіт звичок (вересень 2026):\n\n| Звичка | Виконано | Стрік | |\n|--------|---------|-------|\n| Фізичні вправи | 21/24 | 🔥 21д |\n| Медитація | 19/24 | 🔥 12д |\n| Читання | 17/24 | 🔥 7д |\n| Вода 2+ л | 14/24 | 🔥 4д |\n\n✨ Найкращий місяць з лютого! Загальний скор: 74%.',
+  'Скільки я витратив цього тижня?': '📊 Перевіряю ваші транзакції... Перейдіть до розділу "Finance" для детального огляду витрат та доходів.',
+  'Які пріоритетні задачі горять до завтра?': '🔥 Перевіряю ваші задачі... Перейдіть до розділу "Tasks" для перегляду активних задач за пріоритетом.',
+  'Оптимізуй мій розклад на сьогодні': '🗓️ Аналізую ваш календар... Перейдіть до розділу "Calendar" для керування розкладом.',
+  'Покажи звіт по звичках за місяць': '📈 Перевіряю трекер звичок... Перейдіть до розділу "Tasks & Habits" для перегляду стріків та історії.',
 };
 
 function formatText(text: string) {
@@ -39,8 +32,8 @@ export default function AIAssistant({ userName }: Props) {
     {
       id: 'm0',
       role: 'ai',
-      text: `Привіт, ${userName ? userName.split(' ')[0] : 'Олексію'}! 👋 Я LifeSync AI — ваш персональний асистент. Сьогодні у вас пріоритетні задачі та зустрічі в календарі. Бажаєте, щоб я проаналізував ваш день та запропонував оптимальний розклад?`,
-      time: '09:00',
+      text: `Привіт${userName ? ', ' + userName.split(' ')[0] : ''}! 👋 Я LifeSync AI — ваш персональний асистент. Я можу допомогти з плануванням, аналізом фінансів та оптимізацією розкладу. Що бажаєте?`,
+      time: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
   const [input, setInput] = useState('');
@@ -128,7 +121,7 @@ export default function AIAssistant({ userName }: Props) {
               </div>
               {msg.role === 'user' && (
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 flex items-center justify-center text-xs font-display font-600 text-white shrink-0 mt-0.5">
-                  ОК
+                  {userName ? userName.slice(0, 2).toUpperCase() : 'U'}
                 </div>
               )}
             </div>
@@ -198,19 +191,13 @@ export default function AIAssistant({ userName }: Props) {
         <div className="px-4 py-3 border-t border-white/6 mt-2">
           <h3 className="font-display font-600 text-white text-sm mb-3">📊 AI Insights</h3>
           <div className="space-y-2.5">
-            {[
-              { icon: '🎯', text: 'Продуктивність: 78%', sub: 'Краще, ніж 91% користувачів' },
-              { icon: '💰', text: 'Витрати ↑ 12%', sub: 'Головна причина: AWS EC2' },
-              { icon: '🔥', text: 'Стрік звичок: 21д', sub: 'Найдовший цього року!' },
-            ].map((ins, i) => (
-              <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-white/3">
-                <span className="text-base mt-0.5">{ins.icon}</span>
-                <div>
-                  <p className="text-xs text-slate-200 font-500">{ins.text}</p>
-                  <p className="text-xs text-slate-500">{ins.sub}</p>
-                </div>
+            <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-white/3">
+              <span className="text-base mt-0.5">💡</span>
+              <div>
+                <p className="text-xs text-slate-200 font-500">Почніть додавати дані</p>
+                <p className="text-xs text-slate-500">AI аналітика стане доступна після заповнення задач та фінансів</p>
               </div>
-            ))}
+            </div>
           </div>
         </div>
 

@@ -3,14 +3,13 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
-import { TRANSACTIONS, AREA_DATA } from '../data/seed';
 import { type Transaction, type Currency, type ExchangeRates } from '../types';
 
 const CURRENCIES: Currency[] = ['UAH', 'USD', 'EUR', 'GBP', 'PLN'];
 const CURRENCY_FLAGS: Record<Currency, string> = { UAH: '🇺🇦', USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', PLN: '🇵🇱' };
 
 const BUDGETS = [
-  { cat: 'Їжа', limit: 5000, color: '#7C3AED' },
+  { cat: 'Їжа', limit: 5000, color: 'var(--primary)' },
   { cat: 'Підписки', limit: 2000, color: '#06B6D4' },
   { cat: 'Сервери', limit: 5000, color: '#F59E0B' },
   { cat: 'Навчання', limit: 3000, color: '#10B981' },
@@ -37,7 +36,7 @@ const DEFAULT_NEW_TX: Omit<Transaction, 'id'> = {
 };
 
 export default function Finance({ exchangeRates, transactions: externalTxs, onUpdateTransactions }: Props) {
-  const [internalTxs, setInternalTxs] = useState<Transaction[]>(TRANSACTIONS);
+  const [internalTxs, setInternalTxs] = useState<Transaction[]>([]);
   const transactions = externalTxs || internalTxs;
 
   const updateTransactions = (next: Transaction[]) => {
@@ -86,6 +85,21 @@ export default function Finance({ exchangeRates, transactions: externalTxs, onUp
     budgetSpent[t.category] = (budgetSpent[t.category] || 0) + toUah(t);
   });
 
+  // Compute weekly chart data from transactions
+  const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+  const chartData = weekDays.map(day => {
+    const dayTxs = transactions.filter(t => {
+      const d = new Date(t.date);
+      const dayNames = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+      return dayNames[d.getDay()] === day;
+    });
+    return {
+      day,
+      income: dayTxs.filter(t => t.type === 'income').reduce((s, t) => s + toUAH(t.amount, t.currency, t.rate, exchangeRates), 0),
+      expense: dayTxs.filter(t => t.type === 'expense').reduce((s, t) => s + toUAH(t.amount, t.currency, t.rate, exchangeRates), 0),
+    };
+  });
+
   return (
     <div className="h-full overflow-y-auto p-4 section-enter">
       <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 1fr' }}>
@@ -127,7 +141,7 @@ export default function Finance({ exchangeRates, transactions: externalTxs, onUp
           </div>
           <div className="h-44">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={AREA_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="finInc" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.35}/><stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>

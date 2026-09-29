@@ -154,7 +154,10 @@ export default function App() {
               onUpdateTasks={handleUpdateTasks}
               pinnedDocs={pinnedDocs}
               onUpdatePinnedDocs={handleUpdatePinnedDocs}
+              events={events}
               balance={totalBalance}
+              transactions={transactions}
+              onUpdateTransactions={handleUpdateTransactions}
             />
           )}
           {section === 'calendar' && (

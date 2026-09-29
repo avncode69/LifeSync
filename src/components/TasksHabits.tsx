@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { HABITS } from '../data/seed';
 import { type Task, type Habit } from '../types';
 import TaskEditModal from './TaskEditModal';
 
@@ -20,7 +19,7 @@ interface Props {
 
 export default function TasksHabits({ tasks = [], onUpdateTasks, habits: externalHabits, onUpdateHabits }: Props) {
   const [view, setView] = useState<'list' | 'kanban'>('list');
-  const [internalHabits, setInternalHabits] = useState<Habit[]>(HABITS);
+  const [internalHabits, setInternalHabits] = useState<Habit[]>([]);
   const habits = externalHabits || internalHabits;
 
   const updateHabits = (next: Habit[]) => {

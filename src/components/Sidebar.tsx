@@ -12,7 +12,7 @@ interface Props {
   active: Section;
   onChange: (s: Section) => void;
   onOpenSettings: () => void;
-  syncStatus: 'synced' | 'syncing' | 'offline';
+  syncStatus: 'synced' | 'syncing' | 'saving' | 'offline';
 }
 
 export default function Sidebar({ active, onChange, onOpenSettings, syncStatus }: Props) {
@@ -76,9 +76,9 @@ export default function Sidebar({ active, onChange, onOpenSettings, syncStatus }
           <div className="flex-1 min-w-0">
             <div className="text-xs text-slate-400 truncate">Google Workspace</div>
             <div className="flex items-center gap-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${syncStatus === 'synced' ? 'bg-emerald-400' : syncStatus === 'syncing' ? 'bg-yellow-400 animate-pulse' : 'bg-red-400'}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${syncStatus === 'synced' ? 'bg-emerald-400' : syncStatus === 'saving' || syncStatus === 'syncing' ? 'bg-yellow-400 animate-pulse' : 'bg-red-400'}`} />
               <span className="text-xs text-slate-600 font-mono">
-                {syncStatus === 'synced' ? 'Синхронізовано' : syncStatus === 'syncing' ? 'Синхронізація…' : 'Офлайн'}
+                {syncStatus === 'synced' ? 'Синхронізовано' : syncStatus === 'saving' || syncStatus === 'syncing' ? 'Збереження…' : 'Офлайн'}
               </span>
             </div>
           </div>

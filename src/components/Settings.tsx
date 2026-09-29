@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { type UserSettings, type Currency, type User } from '../types';
 import { useTheme, ACCENT_OPTIONS } from '../context/ThemeContext';
-import { GoogleService } from '../services/google';
+import { useLanguage } from '../context/LanguageContext';
 import { ApiService } from '../services/api';
 
 interface Props {
@@ -39,11 +39,12 @@ export default function Settings({
 }: Props) {
   const [tab, setTab] = useState<Tab>('Профіль');
   const { mode, toggle, accent, setAccent } = useTheme();
+  const { lang, setLang } = useLanguage();
   const [form, setForm] = useState<UserSettings>({
     ...settings,
     nickname: user?.name || settings.nickname || 'Користувач',
-    googleClientId: settings.googleClientId || GoogleService.getClientId(),
-    googleConnected: user?.provider === 'google' || settings.googleConnected || false,
+    googleClientId: settings.googleClientId || '',
+    googleConnected: settings.googleConnected || false,
   });
   const [saved, setSaved] = useState(false);
   const [apiVisible, setApiVisible] = useState(false);
@@ -68,9 +69,6 @@ export default function Settings({
   };
 
   const handleSave = () => {
-    if (form.googleClientId) {
-      GoogleService.setClientId(form.googleClientId);
-    }
     if (onUpdateUser && user && form.nickname && form.nickname !== user.name) {
       onUpdateUser({ ...user, name: form.nickname });
     }
@@ -105,22 +103,7 @@ export default function Settings({
   };
 
   const handleConnectGoogle = async () => {
-    try {
-      const profile = await GoogleService.promptGoogleSignIn();
-      if (profile) {
-        setForm(f => ({ ...f, googleConnected: true }));
-        if (onUpdateUser && user) {
-          onUpdateUser({
-            ...user,
-            name: profile.name || user.name,
-            email: profile.email || user.email,
-            provider: 'google',
-          });
-        }
-      }
-    } catch (e) {
-      console.warn(e);
-    }
+    alert('Google Workspace інтеграція буде доступна пізніше');
   };
 
   const handleChangePassword = (e: React.FormEvent) => {
@@ -283,6 +266,27 @@ export default function Settings({
                       <span className="text-xs font-display" style={{ color: accent.id === opt.id ? '#fff' : 'var(--text-muted)' }}>
                         {opt.label}
                       </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Language */}
+              <div>
+                <label className="text-xs font-display mb-2 block" style={{ color: 'var(--text-muted)' }}>Мова інтерфейсу / Interface Language</label>
+                <div className="flex gap-2">
+                  {([{ id: 'uk' as const, label: '🇺🇦 Українська' }, { id: 'en' as const, label: '🇬🇧 English' }]).map(l => (
+                    <button
+                      key={l.id}
+                      onClick={() => setLang(l.id)}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-display font-500 transition-all"
+                      style={{
+                        background: lang === l.id ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${lang === l.id ? 'rgba(124,58,237,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                        color: lang === l.id ? '#fff' : 'var(--text-muted)',
+                      }}
+                    >
+                      {l.label}
                     </button>
                   ))}
                 </div>
