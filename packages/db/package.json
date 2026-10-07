@@ -24,7 +24,7 @@
     "drizzle-kit": "^0.31.8",
     "@types/pg": "^8.16.0",
     "@types/node": "^24.0.0",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "tsx": "^4.21.0"
   }
 }
