@@ -40,7 +40,8 @@ const server = createServer(async (req, res) => {
     );
   }
 });
-server.listen(port, "127.0.0.1", () => console.log(`LifeSync API listening on http://127.0.0.1:${port}`));
+const host = process.env.HOST ?? "127.0.0.1";
+server.listen(port, host, () => console.log(`LifeSync API listening on http://${host}:${port}`));
 for (const signal of ["SIGTERM", "SIGINT"] as const)
   process.on(signal, () =>
     server.close(() => {

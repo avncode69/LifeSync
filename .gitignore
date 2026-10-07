@@ -20,6 +20,8 @@
 .DS_Store
 *.pem
 *.sh
+!infra/oracle/*.sh
+infra/oracle/backups/
 
 # debug
 npm-debug.log*

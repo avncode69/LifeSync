@@ -1,0 +1,5 @@
+FROM postgres:17-alpine
+RUN apk add --no-cache bash openssl coreutils
+COPY infra/oracle/backups.sh /usr/local/bin/lifesync-backups
+RUN chmod 755 /usr/local/bin/lifesync-backups
+ENTRYPOINT ["bash", "/usr/local/bin/lifesync-backups"]

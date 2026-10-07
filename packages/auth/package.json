@@ -9,10 +9,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lifesync/db": "workspace:*",
     "@lifesync/config": "workspace:*",
+    "@lifesync/db": "workspace:*",
     "better-auth": "1.7.7",
-    "drizzle-orm": "0.45.3"
+    "drizzle-orm": "0.45.3",
+    "nodemailer": "10.0.16"
   },
   "devDependencies": {
     "typescript": "5.9.3"

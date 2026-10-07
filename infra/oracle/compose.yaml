@@ -1,0 +1,83 @@
+name: lifesync
+x-app: &app
+  image: lifesync:local
+  build:
+    context: ../..
+    dockerfile: infra/oracle/Dockerfile
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql://lifesync:${POSTGRES_PASSWORD:?Run setup first}@db:5432/lifesync
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: {max-size: 10m, max-file: "3"}
+  depends_on:
+    db: {condition: service_healthy}
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lifesync
+      POSTGRES_USER: lifesync
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run setup first}
+    volumes: [database:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U lifesync -d lifesync"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  api:
+    <<: *app
+    command: [pnpm, --filter, '@lifesync/api', exec, tsx, src/local.ts]
+    environment:
+      DATABASE_URL: postgresql://lifesync:${POSTGRES_PASSWORD}@db:5432/lifesync
+      HOST: 0.0.0.0
+      PORT: "8787"
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8787/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  web:
+    <<: *app
+    # Browser requests go through Caddy; web itself never needs application secrets.
+    env_file: []
+    environment: {NODE_ENV: production, API_URL: 'http://api:8787'}
+  jobs:
+    <<: *app
+    command: [pnpm, --filter, '@lifesync/api', exec, tsx, scripts/run-jobs.ts]
+    stop_grace_period: 90s
+    healthcheck:
+      test: [CMD, node, -e, "const fs=require('fs');try{process.exit(Date.now()-Number(fs.readFileSync('/tmp/lifesync-jobs-heartbeat','utf8'))<900000?0:1)}catch{process.exit(1)}"]
+      interval: 60s
+      start_period: 120s
+      retries: 3
+  migrate:
+    <<: *app
+    profiles: [ops]
+    restart: "no"
+    command: [pnpm, db:migrate]
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment: {APP_HOST: '${APP_HOST:?Run setup first}'}
+    ports: ['80:80', '443:443']
+    volumes: ['./Caddyfile:/etc/caddy/Caddyfile:ro', 'caddy_data:/data', 'caddy_config:/config']
+    depends_on: [api, web]
+  backup:
+    build: {context: ../.., dockerfile: infra/oracle/Dockerfile.backup}
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: lifesync
+      PGDATABASE: lifesync
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?Run setup first}
+    volumes: ['./backups:/backups']
+    depends_on:
+      db: {condition: service_healthy}
+volumes:
+  database:
+  caddy_data:
+  caddy_config:

@@ -17,9 +17,14 @@ export const environmentSchema = z
     GOOGLE_PICKER_APP_ID: optionalSecret,
     GOOGLE_TOKEN_ENCRYPTION_KEY: optionalSecret,
     GOOGLE_TOKEN_PREVIOUS_ENCRYPTION_KEY: optionalSecret,
-    EMAIL_PROVIDER: z.enum(["resend", "mailpit", "development"]).default("mailpit"),
+    EMAIL_PROVIDER: z.enum(["resend", "smtp", "mailpit", "development"]).default("mailpit"),
     EMAIL_FROM: z.string().min(3).default("LifeSync <noreply@example.com>"),
     RESEND_API_KEY: optionalSecret,
+    SMTP_HOST: optionalSecret,
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(465),
+    SMTP_SECURE: z.union([z.boolean(), z.enum(["true", "false"]).transform((v) => v === "true")]).default(true),
+    SMTP_USER: optionalSecret,
+    SMTP_PASSWORD: optionalSecret,
     MAILPIT_URL: z.preprocess((v) => (v === "" ? undefined : v), z.url().optional()),
     TURNSTILE_SECRET_KEY: optionalSecret,
     TURNSTILE_SITE_KEY: optionalSecret,
@@ -38,14 +43,32 @@ export const environmentSchema = z
         if (new URL(value[name]).protocol !== "https:")
           ctx.addIssue({ code: "custom", path: [name], message: "HTTPS is required" });
       }
-      if (value.EMAIL_PROVIDER !== "resend" || !value.RESEND_API_KEY)
-        ctx.addIssue({ code: "custom", path: ["RESEND_API_KEY"], message: "Production email provider required" });
+      if (!["resend", "smtp"].includes(value.EMAIL_PROVIDER))
+        ctx.addIssue({ code: "custom", path: ["EMAIL_PROVIDER"], message: "Production email provider required" });
       if (!value.TURNSTILE_SECRET_KEY)
         ctx.addIssue({
           code: "custom",
           path: ["TURNSTILE_SECRET_KEY"],
           message: "Production anti-bot protection required",
         });
+    }
+    if (value.EMAIL_PROVIDER === "resend" && !value.RESEND_API_KEY)
+      ctx.addIssue({ code: "custom", path: ["RESEND_API_KEY"], message: "Resend API key required" });
+    if (value.EMAIL_PROVIDER === "smtp") {
+      for (const name of ["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD"] as const) {
+        if (!value[name]?.trim())
+          ctx.addIssue({ code: "custom", path: [name], message: "Authenticated SMTP configuration required" });
+      }
+      const sender = value.EMAIL_FROM.match(/^(?:([^<>\s@]+@[^<>\s@]+)|[^<>\r\n]*<([^<>\s@]+@[^<>\s@]+)>)$/);
+      const from = sender?.[1] ?? sender?.[2];
+      if (!from || !z.email().safeParse(from).success)
+        ctx.addIssue({ code: "custom", path: ["EMAIL_FROM"], message: "Valid SMTP sender required" });
+      if (value.SMTP_HOST?.toLowerCase() === "smtp.gmail.com" && from?.toLowerCase() !== value.SMTP_USER?.toLowerCase())
+        ctx.addIssue({ code: "custom", path: ["EMAIL_FROM"], message: "Gmail sender must match SMTP_USER" });
+      if (value.SMTP_PORT === 465 && !value.SMTP_SECURE)
+        ctx.addIssue({ code: "custom", path: ["SMTP_SECURE"], message: "Port 465 requires implicit TLS" });
+      if (value.SMTP_PORT === 587 && value.SMTP_SECURE)
+        ctx.addIssue({ code: "custom", path: ["SMTP_SECURE"], message: "Port 587 requires STARTTLS, set false" });
     }
     if (new URL(value.BETTER_AUTH_URL).origin !== new URL(value.APP_URL).origin)
       ctx.addIssue({ code: "custom", path: ["BETTER_AUTH_URL"], message: "Auth must use the application origin" });

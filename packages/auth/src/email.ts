@@ -6,6 +6,31 @@ export interface EmailProvider {
 export function createEmailProvider(config: AppConfig): EmailProvider {
   return {
     async send(to, subject, text) {
+      if (config.EMAIL_PROVIDER === "smtp") {
+        try {
+          const { default: nodemailer } = await import("nodemailer");
+          const transport = nodemailer.createTransport({
+            host: config.SMTP_HOST,
+            port: config.SMTP_PORT,
+            secure: config.SMTP_SECURE,
+            requireTLS: !config.SMTP_SECURE,
+            auth: { user: config.SMTP_USER, pass: config.SMTP_PASSWORD },
+            connectionTimeout: 15000,
+            greetingTimeout: 15000,
+            socketTimeout: 15000,
+            dnsTimeout: 15000,
+            disableFileAccess: true,
+            disableUrlAccess: true,
+            logger: false,
+            debug: false,
+          });
+          const result = await transport.sendMail({ from: config.EMAIL_FROM, to, subject, text });
+          if (!result.accepted?.length || result.rejected?.length) throw new Error("Recipient rejected");
+        } catch {
+          throw new Error("Email delivery failed");
+        }
+        return;
+      }
       if (config.EMAIL_PROVIDER === "development") {
         if (config.APP_ENV !== "development") throw new Error("Development mail prohibited");
         console.log(JSON.stringify({ devMail: true, to, subject, text }));
