@@ -24,7 +24,7 @@ jobs:
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: ci-only-not-a-production-secret-at-least-32-characters
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
