@@ -1,0 +1,17 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "lifesync-web",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-10-05",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": "dist/client", "binding": "ASSETS", "not_found_handling": "none" },
+  "services": [{ "binding": "API", "service": "lifesync-api" }],
+  "observability": { "enabled": true },
+  "env": {
+    "staging": {
+      "name": "lifesync-web-staging",
+      "services": [{ "binding": "API", "service": "lifesync-api-staging" }]
+    },
+    "production": { "name": "lifesync-web", "services": [{ "binding": "API", "service": "lifesync-api" }] }
+  }
+}

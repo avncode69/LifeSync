@@ -1,0 +1,17 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": [
+    "TEST_DATABASE_URL",
+    "DATABASE_URL",
+    "APP_ENV",
+    "APP_URL",
+    "BETTER_AUTH_URL",
+    "BETTER_AUTH_SECRET",
+    "CLOUDFLARE_BUILD"
+  ],
+  "tasks": {
+    "dev": { "cache": false, "persistent": true },
+    "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**"] },
+    "typecheck": { "dependsOn": ["^typecheck"] }
+  }
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "ai_action_logs" ADD COLUMN "proposed_data" jsonb;

@@ -1,0 +1,17 @@
+{
+  "name": "@lifesync/domain",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@js-temporal/polyfill": "0.5.1",
+    "decimal.js": "10.6.0",
+    "rrule": "2.8.1"
+  }
+}
