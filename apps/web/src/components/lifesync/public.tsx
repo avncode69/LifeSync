@@ -5,7 +5,6 @@ import {
   CheckCheck,
   CircleDollarSign,
   Heart,
-  Layers,
   ShieldCheck,
   Sparkles,
   Sprout,
@@ -23,12 +22,15 @@ const modules = [
 ];
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
-    <a href="/" aria-label="LifeSync" className="flex items-center gap-2 text-xl font-bold tracking-tight">
-      <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-        <Layers className="size-5" />
+    <a
+      href="/"
+      aria-label="LifeSync"
+      className="lifesync-brand flex items-center gap-2.5 text-lg font-semibold tracking-tight"
+    >
+      <span className="lifesync-brand-mark flex size-9 items-center justify-center rounded-xl text-sm font-bold text-white">
+        LS
       </span>
       <span className={compact ? "hidden sm:inline" : ""}>LifeSync</span>
-      <span className={`size-1.5 rounded-full bg-primary ${compact ? "hidden sm:inline" : ""}`} />
     </a>
   );
 }
@@ -95,10 +97,10 @@ export function Landing() {
           </div>
           <div className="overflow-hidden rounded-3xl border shadow-xl shadow-primary/5">
             <img
-              src="/dashboard-preview.png"
+              src="/dashboard-preview.jpg"
               alt={t("dashboardPreview")}
-              width={1440}
-              height={1000}
+              width={1280}
+              height={720}
               className="h-auto w-full"
             />
           </div>

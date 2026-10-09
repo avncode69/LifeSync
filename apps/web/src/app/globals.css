@@ -20,36 +20,53 @@
   --color-border: var(--border);
   --color-input: var(--border);
   --color-ring: var(--primary);
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
-  --font-sans: Arial, Helvetica, sans-serif;
-  --font-heading: Arial, Helvetica, sans-serif;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.875rem;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-heading: "Outfit", "Inter", system-ui, sans-serif;
 }
+/* Theme values restored from the owner's original frontend. */
 :root {
-  --background: var(--color-slate-50);
-  --foreground: var(--color-slate-950);
-  --card: var(--color-white);
-  --muted: var(--color-slate-100);
-  --muted-foreground: var(--color-slate-600);
-  --accent: var(--color-violet-50);
-  --primary: var(--color-violet-700);
-  --primary-foreground: var(--color-white);
-  --border: var(--color-slate-200);
-  --destructive: var(--color-red-700);
+  --background: #f0f4f8;
+  --foreground: #0f172a;
+  --card: rgba(255, 255, 255, 0.8);
+  --muted: #e2e8f0;
+  --muted-foreground: #475569;
+  --accent: #ecfeff;
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --border: rgba(0, 0, 0, 0.08);
+  --destructive: #e11d48;
+  --sidebar-bg: rgba(255, 255, 255, 0.9);
+  --header-bg: rgba(248, 250, 252, 0.9);
+  --input-bg: rgba(0, 0, 0, 0.035);
+  --input-border: rgba(0, 0, 0, 0.1);
+  --subcard-bg: rgba(0, 0, 0, 0.025);
+  --ambient-a: rgba(124, 58, 237, 0.06);
+  --ambient-b: rgba(6, 182, 212, 0.05);
+  --accent-glow: rgba(124, 58, 237, 0.12);
 }
 .dark {
-  --background: var(--color-slate-950);
-  --foreground: var(--color-slate-100);
-  --card: var(--color-slate-900);
-  --muted: var(--color-slate-800);
-  --muted-foreground: var(--color-slate-400);
-  --accent: var(--color-violet-950);
-  --primary: var(--color-violet-400);
-  --primary-foreground: var(--color-slate-950);
-  --border: var(--color-slate-800);
-  --destructive: var(--color-red-400);
+  --background: #0b0f17;
+  --foreground: #f1f5f9;
+  --card: rgba(17, 24, 39, 0.55);
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #164e63;
+  --primary: #a78bfa;
+  --primary-foreground: #0b0f17;
+  --border: rgba(255, 255, 255, 0.07);
+  --destructive: #fb7185;
+  --sidebar-bg: rgba(10, 13, 22, 0.85);
+  --header-bg: rgba(10, 13, 22, 0.8);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --input-border: rgba(255, 255, 255, 0.1);
+  --subcard-bg: rgba(255, 255, 255, 0.03);
+  --ambient-a: rgba(124, 58, 237, 0.12);
+  --ambient-b: rgba(6, 182, 212, 0.1);
+  --accent-glow: rgba(124, 58, 237, 0.25);
 }
 * {
   border-color: var(--border);
@@ -58,7 +75,9 @@ body {
   background: var(--background);
   color: var(--foreground);
   margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  isolation: isolate;
 }
 button,
 a,
@@ -80,7 +99,8 @@ a {
   min-height: 44px;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
-  background: var(--background);
+  background: var(--input-bg);
+  border-color: var(--input-border);
   padding: 0.65rem 0.8rem;
   color: var(--foreground);
   font: inherit;
@@ -98,15 +118,16 @@ a {
   border-radius: 1.25rem;
 }
 .page-heading {
-  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-size: clamp(1.5rem, 2.5vw, 1.9rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.025em;
 }
 .surface {
   min-width: 0;
   border: 1px solid var(--border);
-  border-radius: 1.25rem;
+  border-radius: 1rem;
   background: var(--card);
+  backdrop-filter: blur(20px);
   padding: 1.25rem;
 }
 .subtle {
@@ -118,5 +139,194 @@ a {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Fonts are served by LifeSync, including on the cloud host. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/inter-0.ttf) format("truetype");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/inter-1.ttf) format("truetype");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(/fonts/inter-2.ttf) format("truetype");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/inter-3.ttf) format("truetype");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url(/fonts/inter-4.ttf) format("truetype");
+}
+
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/outfit-0.ttf) format("truetype");
+}
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/outfit-1.ttf) format("truetype");
+}
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(/fonts/outfit-2.ttf) format("truetype");
+}
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/outfit-3.ttf) format("truetype");
+}
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url(/fonts/outfit-4.ttf) format("truetype");
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.lifesync-brand {
+  font-family: var(--font-heading);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 5% 0%, var(--ambient-a), transparent 55%),
+    radial-gradient(ellipse at 100% 100%, var(--ambient-b), transparent 50%);
+}
+* {
+  box-sizing: border-box;
+}
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+}
+.lifesync-brand-mark {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  box-shadow: 0 0 20px var(--accent-glow);
+  font-family: var(--font-heading);
+}
+.lifesync-sidebar,
+.lifesync-mobile-nav {
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(24px);
+}
+.lifesync-header {
+  background: var(--header-bg);
+  backdrop-filter: blur(24px);
+}
+.lifesync-navigation a {
+  border: 1px solid transparent;
+  font-family: var(--font-heading);
+}
+.lifesync-navigation a[aria-current="page"] {
+  color: var(--foreground);
+  background: rgba(124, 58, 237, 0.16);
+  border-color: rgba(124, 58, 237, 0.32);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+[data-slot="button"][data-variant="default"] {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  color: #ffffff;
+  box-shadow: 0 3px 14px rgba(124, 58, 237, 0.15);
+}
+[data-slot="button"][data-variant="default"]:hover {
+  filter: brightness(1.12);
+}
+[data-slot="dialog-content"] {
+  background: var(--background);
+  backdrop-filter: blur(24px);
+}
+.dashboard-card {
+  position: relative;
+  overflow: hidden;
+}
+.dashboard-card-header {
+  border-bottom: 1px solid var(--border);
+  margin: -1.25rem -1.25rem 1rem;
+  padding: 1rem 1.25rem;
+}
+.dashboard-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 125px;
+  padding: 1rem;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+.dashboard-empty svg {
+  opacity: 0.65;
+}
+.dashboard-row {
+  background: var(--subcard-bg);
+  border: 1px solid var(--border);
+}
+.dashboard-greeting {
+  padding: 0.25rem 0;
+}
+.dashboard-greeting h2 {
+  font-size: clamp(1.6rem, 3vw, 2rem);
+}
+.dashboard-greeting p {
+  font-size: 0.875rem;
+}
+@media (max-width: 639px) {
+  .surface {
+    padding: 1rem;
+  }
+  .dashboard-card-header {
+    margin: -1rem -1rem 1rem;
+    padding: 0.875rem 1rem;
   }
 }

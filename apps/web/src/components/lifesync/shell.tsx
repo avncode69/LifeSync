@@ -22,7 +22,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -66,6 +66,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [search, setSearch] = useState(false);
   const [capture, setCapture] = useState(false);
   const [offline, setOffline] = useState(false);
+  const appliedThemePreference = useRef<Preferences | null>(null);
   useEffect(() => {
     if (me.error instanceof RequestError && me.error.status === 401) location.assign("/login");
   }, [me.error]);
@@ -73,7 +74,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
     if (prefs.data) {
       if (prefs.data.onboardingCompleted && !sessionStorage.getItem("lifesync.locale-choice"))
         setLocale(prefs.data.locale);
-      setTheme(prefs.data.theme);
+      // next-themes changes setTheme's identity when the chosen theme changes.
+      // Apply each fetched result once, including an explicit Settings save,
+      // without undoing the header control on a theme-only rerender.
+      if (appliedThemePreference.current !== prefs.data) {
+        appliedThemePreference.current = prefs.data;
+        setTheme(prefs.data.theme);
+      }
     }
   }, [prefs.data, setLocale, setTheme]);
   useEffect(() => {
@@ -158,7 +165,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       href={item.path}
       onClick={() => setMore(false)}
       aria-current={pathname === item.path ? "page" : undefined}
-      className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${pathname === item.path ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+      className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${pathname === item.path ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
     >
       <item.icon className="size-4 shrink-0" />
       <span>{t(item.key === "workspace" ? "integrations" : item.key)}</span>
@@ -178,14 +185,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
         },
       }}
     >
-      <div className="min-h-dvh">
-        <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r bg-card px-4 py-6 lg:flex">
+      <div className="lifesync-app min-h-dvh">
+        <aside className="lifesync-sidebar fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r px-3 py-4 lg:flex">
           <div className="px-2">
             <Logo />
           </div>
           <Button
             variant="outline"
-            className="my-7 min-h-11 justify-between text-muted-foreground"
+            className="my-5 min-h-10 justify-between text-muted-foreground"
             onClick={() => setSearch(true)}
           >
             <span className="flex items-center gap-2">
@@ -197,7 +204,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <p className="mb-3 px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             {t("overview")}
           </p>
-          <nav className="flex-1 space-y-1 overflow-y-auto">
+          <nav className="lifesync-navigation flex-1 space-y-0.5 overflow-y-auto">
             {visible.map(navLink)}
             {String(me.data?.role) === "admin" && navLink({ key: "admin", path: "/admin", icon: Shield })}
           </nav>
@@ -214,7 +221,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
         <div className="lg:pl-60">
-          <header className="sticky top-0 z-20 flex min-h-18 items-center justify-between gap-3 border-b bg-background/95 px-5 backdrop-blur sm:px-8">
+          <header className="lifesync-header sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b px-4 sm:px-6">
             <div className="flex items-center gap-3">
               <div className="lg:hidden">
                 <Logo compact />
@@ -223,7 +230,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 {t(navigation.find((item) => item.path === pathname)?.key ?? "dashboard")}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="mx-auto hidden min-h-10 min-w-0 flex-1 shrink max-w-xs justify-start gap-2 text-muted-foreground xl:flex"
+              onClick={() => setSearch(true)}
+            >
+              <Search className="size-4" />
+              <span className="truncate">{t("search")}</span>
+              <kbd className="ml-auto rounded bg-muted px-1.5 text-xs">⌘K</kbd>
+            </Button>
+            <div className="flex shrink-0 items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
@@ -261,7 +277,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           )}
           <main
             id="main-content"
-            className={`mx-auto max-w-7xl space-y-8 px-5 py-7 pb-28 sm:px-8 lg:py-10 ${offline ? "[&_form]:pointer-events-none [&_form]:opacity-60" : ""}`}
+            className={`mx-auto max-w-7xl space-y-6 px-4 py-5 pb-28 sm:px-6 lg:py-6 ${offline ? "[&_form]:pointer-events-none [&_form]:opacity-60" : ""}`}
           >
             {me.loading ? (
               <Loading />
@@ -273,7 +289,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-card px-1 pb-[env(safe-area-inset-bottom)] lg:hidden"
+          className="lifesync-mobile-nav fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t px-1 pb-[env(safe-area-inset-bottom)] lg:hidden"
           aria-label={t("more")}
         >
           {navigation
