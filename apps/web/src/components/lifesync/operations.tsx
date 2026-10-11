@@ -1,10 +1,18 @@
 "use client";
 
 import type { ResourceName } from "@lifesync/contracts";
+import { ChevronLeft, ChevronRight, MoreHorizontal, Search, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { api, errorKey, label, type Row, useApi } from "@/lib/api";
 import { registerPushSubscription } from "@/lib/push";
 import { localDate } from "@/lib/time";
@@ -191,7 +199,8 @@ export function Trash() {
 }
 
 export function Admin() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const { user: currentUser } = useAccount();
   const users = useApi<Row[]>("/admin/users");
   const metrics = useApi<Record<string, unknown>>("/admin/metrics");
   const flags = useApi<Row[]>("/admin/flags");
@@ -199,6 +208,23 @@ export function Admin() {
   const jobs = useApi<Row[]>("/admin/jobs");
   const [pending, setPending] = useState(false);
   const [flagError, setFlagError] = useState("");
+  const [query, setQuery] = useState("");
+  const [role, setRole] = useState("");
+  const [status, setStatus] = useState("");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const normalizedQuery = query.trim().toLocaleLowerCase(locale);
+  const filteredUsers = (users.data ?? []).filter((user) => {
+    const userStatus = user.disabled ? "adminBanned" : user.emailVerified ? "adminConfirmed" : "adminUnconfirmed";
+    return (
+      (!role || user.role === role) &&
+      (!status || userStatus === status) &&
+      (!normalizedQuery || `${user.name ?? ""} ${user.email ?? ""}`.toLocaleLowerCase(locale).includes(normalizedQuery))
+    );
+  });
+  const pageCount = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const currentPage = Math.min(page, pageCount - 1);
+  const visibleUsers = filteredUsers.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
   async function createFlag(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
@@ -230,7 +256,10 @@ export function Admin() {
   }
   return (
     <div className="space-y-7">
-      <h1 className="page-heading">{t("admin")}</h1>
+      <header className="space-y-2">
+        <h1 className="page-heading">{t("users")}</h1>
+        <p className="text-sm text-muted-foreground">{t("adminUsersDescription")}</p>
+      </header>
       {users.loading ? (
         <Loading />
       ) : users.error ? (
@@ -238,6 +267,234 @@ export function Admin() {
       ) : (
         <>
           {!!metrics.error && <ErrorState error={metrics.error} retry={() => void metrics.reload()} />}
+          <section aria-label={t("users")} className="overflow-hidden rounded-xl border bg-card">
+            <div className="flex flex-wrap items-center gap-3 border-b p-4">
+              <div className="relative min-w-48 flex-1 sm:max-w-sm">
+                <Search
+                  aria-hidden="true"
+                  className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                />
+                <input
+                  type="search"
+                  className="control lifesync-table-search"
+                  aria-label={t("adminSearchUsers")}
+                  placeholder={t("adminSearchUsers")}
+                  value={query}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setPage(0);
+                  }}
+                />
+              </div>
+              <LifeSelect
+                className="control w-auto min-w-36"
+                aria-label={t("adminRole")}
+                value={role}
+                onChange={(event) => {
+                  setRole(event.target.value);
+                  setPage(0);
+                }}
+              >
+                <option value="">{t("adminAllRoles")}</option>
+                <option value="admin">{t("adminRoleAdmin")}</option>
+                <option value="user">{t("adminRoleUser")}</option>
+              </LifeSelect>
+              <LifeSelect
+                className="control w-auto min-w-40"
+                aria-label={t("status")}
+                value={status}
+                onChange={(event) => {
+                  setStatus(event.target.value);
+                  setPage(0);
+                }}
+              >
+                <option value="">{t("adminAllStatuses")}</option>
+                {["adminConfirmed", "adminUnconfirmed", "adminBanned"].map((value) => (
+                  <option key={value} value={value}>
+                    {t(value)}
+                  </option>
+                ))}
+              </LifeSelect>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-175 text-left text-sm">
+                <caption className="sr-only">{t("users")}</caption>
+                <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
+                  <tr>
+                    {["users", "adminRole", "status", "plan", "adminJoined", "adminActions"].map((key) => (
+                      <th key={key} scope="col" className="px-5 py-3 font-medium">
+                        {t(key)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {visibleUsers.map((user) => {
+                    const name = String(user.name || user.email || "—");
+                    const userStatus = user.disabled
+                      ? "adminBanned"
+                      : user.emailVerified
+                        ? "adminConfirmed"
+                        : "adminUnconfirmed";
+                    const initials = name
+                      .trim()
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .map((part) => part[0])
+                      .join("")
+                      .toLocaleUpperCase(locale);
+                    const joined = new Date(String(user.createdAt));
+                    return (
+                      <tr key={user.id} className="transition-colors hover:bg-muted/30">
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar size="lg">
+                              <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="max-w-64 truncate font-medium" title={name}>
+                                {name}
+                              </p>
+                              <p
+                                className="mt-1 max-w-64 truncate text-xs text-muted-foreground"
+                                title={String(user.email ?? "")}
+                              >
+                                {String(user.email ?? "")}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="rounded-md border px-2 py-1 text-xs">
+                            {t(user.role === "admin" ? "adminRoleAdmin" : "adminRoleUser")}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-xs ${user.disabled ? "bg-destructive/10 text-destructive" : user.emailVerified ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400"}`}
+                          >
+                            <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+                            {t(userStatus)}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-xs text-muted-foreground">
+                          {user.plan === "PRO" ? t("pro") : t("free")}
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-4 text-xs text-muted-foreground">
+                          {Number.isNaN(joined.getTime()) ? (
+                            "—"
+                          ) : (
+                            <time dateTime={joined.toISOString()}>
+                              {joined.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" })}
+                            </time>
+                          )}
+                        </td>
+                        <td className="px-5 py-4">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={pending}
+                                aria-label={`${t("adminActions")}: ${name}`}
+                              >
+                                <MoreHorizontal />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="min-w-48">
+                              <DropdownMenuItem
+                                disabled={pending}
+                                onSelect={() =>
+                                  void patch(`/users/${user.id}`, { plan: user.plan === "PRO" ? "FREE" : "PRO" })
+                                }
+                              >
+                                {t(user.plan === "PRO" ? "revokePro" : "grantPro")}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                disabled={pending || user.id === currentUser?.id}
+                                variant={user.disabled ? "default" : "destructive"}
+                                onSelect={() => void patch(`/users/${user.id}`, { disabled: !user.disabled })}
+                              >
+                                {t(user.disabled ? "enableAccount" : "disableAccount")}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!visibleUsers.length && (
+                    <tr>
+                      <td colSpan={6} className="px-5 py-14 text-center">
+                        <Users aria-hidden="true" className="mx-auto mb-3 size-7 text-muted-foreground" />
+                        <p className="font-medium">{t("adminNoUsers")}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{t("adminNoUsersHint")}</p>
+                        {(query || role || status) && (
+                          <Button
+                            className="mt-4"
+                            variant="outline"
+                            onClick={() => {
+                              setQuery("");
+                              setRole("");
+                              setStatus("");
+                              setPage(0);
+                            }}
+                          >
+                            {t("adminClearFilters")}
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t px-5 py-4 text-xs text-muted-foreground">
+              <p aria-live="polite">
+                {t("adminShowing")} {filteredUsers.length ? currentPage * pageSize + 1 : 0}–
+                {Math.min((currentPage + 1) * pageSize, filteredUsers.length)} {t("adminOf")} {filteredUsers.length}
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <span>{t("adminRowsPerPage")}</span>
+                <LifeSelect
+                  className="control w-18"
+                  aria-label={t("adminRowsPerPage")}
+                  value={pageSize}
+                  onChange={(event) => {
+                    setPageSize(Number(event.target.value));
+                    setPage(0);
+                  }}
+                >
+                  {[10, 25, 50].map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </LifeSelect>
+                <span>
+                  {t("adminPage")} {currentPage + 1} {t("adminOf")} {pageCount}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label={t("previous")}
+                  disabled={currentPage === 0}
+                  onClick={() => setPage(currentPage - 1)}
+                >
+                  <ChevronLeft />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label={t("adminNextPage")}
+                  disabled={currentPage + 1 >= pageCount}
+                  onClick={() => setPage(currentPage + 1)}
+                >
+                  <ChevronRight />
+                </Button>
+              </div>
+            </div>
+          </section>
           <section className="grid gap-4 sm:grid-cols-3">
             {Object.entries(metrics.data ?? {})
               .filter(([, value]) => typeof value !== "object")
@@ -247,33 +504,6 @@ export function Admin() {
                   <p className="mt-4 text-3xl font-semibold">{String(value)}</p>
                 </article>
               ))}
-          </section>
-          <section className="surface space-y-4">
-            <h2 className="text-xl font-semibold">{t("users")}</h2>
-            {users.data?.map((user) => (
-              <article key={user.id} className="flex flex-wrap items-center justify-between gap-4 border-t pt-4">
-                <div>
-                  <p className="font-medium">{String(user.name)}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {String(user.email)} · {String(user.plan)} · {new Date(String(user.createdAt)).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => void patch(`/users/${user.id}`, { plan: user.plan === "PRO" ? "FREE" : "PRO" })}
-                  >
-                    {t(user.plan === "PRO" ? "revokePro" : "grantPro")}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => void patch(`/users/${user.id}`, { disabled: !user.disabled })}
-                  >
-                    {t(user.disabled ? "enableAccount" : "disableAccount")}
-                  </Button>
-                </div>
-              </article>
-            ))}
           </section>
           <section className="surface space-y-4">
             <h2 className="text-xl font-semibold">{t("flags")}</h2>

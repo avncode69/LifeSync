@@ -53,7 +53,7 @@ export function AppearanceControls() {
           setLocale(locale === "uk" ? "en" : "uk");
         }}
       >
-        {locale.toUpperCase()}
+        {locale === "uk" ? "UA" : "EN"}
       </Button>
       <LifeSelect
         className="control w-auto text-xs"

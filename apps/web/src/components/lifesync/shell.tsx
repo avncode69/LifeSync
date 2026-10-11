@@ -9,7 +9,6 @@ import {
   Home,
   Inbox,
   Layers,
-  LogOut,
   Menu,
   Plus,
   Search,
@@ -29,6 +28,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { auth, errorKey, label, RequestError, type Row, useApi } from "@/lib/api";
 import { cleanupBrowserPush } from "@/lib/push";
 import { Capture } from "./capture";
+import { ProfileMenu } from "./profile-menu";
 import { AppearanceControls, useLocale } from "./providers";
 import { Logo } from "./public";
 import { PwaControls } from "./pwa";
@@ -61,6 +61,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const me = useApi<Row>("/me");
   const prefs = useApi<Preferences>("/preferences");
+  const entitlements = useApi<{ plan: "FREE" | "PRO" }>(me.data ? "/entitlements" : null);
   const notifications = useApi<{ count: number }>("/notifications/unread-count");
   const [more, setMore] = useState(false);
   const [search, setSearch] = useState(false);
@@ -132,7 +133,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
     }
   }
   const visible = navigation.filter(
-    (item) => !prefs.data?.hiddenModules.includes(item.key as Preferences["hiddenModules"][number]),
+    (item) =>
+      !["settings", "trash"].includes(item.key) &&
+      !prefs.data?.hiddenModules.includes(item.key as Preferences["hiddenModules"][number]),
   );
   const unread = notifications.data?.count ?? 0;
   useEffect(() => {
@@ -204,30 +207,23 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <p className="mb-3 px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             {t("overview")}
           </p>
-          <nav className="lifesync-navigation flex-1 space-y-0.5 overflow-y-auto">
-            {visible.map(navLink)}
-            {String(me.data?.role) === "admin" && navLink({ key: "admin", path: "/admin", icon: Shield })}
-          </nav>
-          <div className="mt-4 border-t pt-4">
-            <p className="truncate px-3 text-sm font-semibold">{String(me.data?.name ?? "LifeSync")}</p>
-            <Button
-              variant="ghost"
-              className="mt-2 min-h-11 w-full justify-start gap-3 text-muted-foreground"
-              onClick={() => void logout()}
-            >
-              <LogOut className="size-4" />
-              {t("logout")}
-            </Button>
+          <nav className="lifesync-navigation flex-1 space-y-0.5 overflow-y-auto">{visible.map(navLink)}</nav>
+          <div className="mt-4 border-t pt-3">
+            <ProfileMenu user={me.data} plan={entitlements.data?.plan} onLogout={() => void logout()} />
           </div>
         </aside>
         <div className="lg:pl-60">
-          <header className="lifesync-header sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b px-4 sm:px-6">
+          <header className="lifesync-header sticky top-0 z-20 flex min-h-16 flex-wrap items-center justify-between gap-2 border-b px-4 py-2 sm:gap-3 sm:px-6">
             <div className="flex items-center gap-3">
               <div className="lg:hidden">
                 <Logo compact />
               </div>
               <div className="hidden text-sm text-muted-foreground lg:block">
-                {t(navigation.find((item) => item.path === pathname)?.key ?? "dashboard")}
+                {t(
+                  pathname === "/admin"
+                    ? "admin"
+                    : (navigation.find((item) => item.path === pathname)?.key ?? "dashboard"),
+                )}
               </div>
             </div>
             <Button
@@ -244,7 +240,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 variant="ghost"
                 size="icon"
                 aria-label={t("search")}
-                className="min-h-11 min-w-11 lg:hidden"
+                className="hidden min-h-11 min-w-11 sm:inline-flex lg:hidden"
                 onClick={() => setSearch(true)}
               >
                 <Search />
@@ -253,6 +249,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 <PwaControls />
               </div>
               <AppearanceControls />
+              {me.data?.role === "admin" && (
+                <Link
+                  href="/admin"
+                  aria-label={t("admin")}
+                  aria-current={pathname === "/admin" ? "page" : undefined}
+                  title={t("admin")}
+                  className={`flex size-11 shrink-0 items-center justify-center rounded-xl transition hover:bg-muted ${pathname === "/admin" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}
+                >
+                  <Shield className="size-5" />
+                </Link>
+              )}
               <Link
                 href="/notifications"
                 aria-label={t("notifications")}
@@ -319,6 +326,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <DialogTitle>{t("more")}</DialogTitle>
             <PwaControls />
             <DialogDescription>LifeSync</DialogDescription>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setMore(false);
+                setSearch(true);
+              }}
+            >
+              <Search className="size-4" /> {t("search")}
+            </Button>
             <nav className="grid grid-cols-2 gap-2">{visible.map(navLink)}</nav>
             <Button
               className="min-h-11"
@@ -329,9 +345,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
             >
               {t("capture")}
             </Button>
-            <Button variant="outline" onClick={() => void logout()}>
-              {t("logout")}
-            </Button>
+            <div className="border-t pt-3">
+              <ProfileMenu
+                user={me.data}
+                plan={entitlements.data?.plan}
+                onLogout={() => void logout()}
+                onNavigate={() => setMore(false)}
+              />
+            </div>
           </DialogContent>
         </Dialog>
         {search && (

@@ -384,6 +384,25 @@ body::before {
   padding: 0.3rem;
   max-width: min(28rem, calc(100vw - 2rem));
 }
+.lifesync-select-trigger.w-auto {
+  width: auto;
+}
+.lifesync-table-search {
+  padding-left: 2.25rem;
+}
+.lifesync-profile-menu {
+  background: var(--background);
+}
+.dark .lifesync-profile-menu {
+  background: var(--color-neutral-800);
+}
+.lifesync-profile-menu [data-highlighted] {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.lifesync-profile-menu [data-highlighted] * {
+  color: var(--foreground);
+}
 .lifesync-select-option {
   min-height: 36px;
   padding: 0.5rem 2rem 0.5rem 0.65rem;
@@ -392,9 +411,18 @@ body::before {
 }
 .lifesync-select-option[data-highlighted],
 .lifesync-select-option[data-state="checked"],
+.lifesync-select-option:focus,
 .lifesync-picker-action:hover {
   background: var(--muted);
   color: var(--foreground);
+}
+.lifesync-select-option[data-highlighted] span,
+.lifesync-select-option:focus span {
+  color: var(--foreground);
+}
+.lifesync-select-option:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: -2px;
 }
 .lifesync-date-menu {
   width: fit-content;

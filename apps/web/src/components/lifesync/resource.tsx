@@ -97,14 +97,16 @@ export function ResourceEditor({
         : {}),
     } as Record<string, ResourceName>;
     void Promise.all(
-      Object.entries(relations).map(async ([field, parent]) => {
-        try {
-          const rows = await api<Row[]>(`${resourceRegistry[parent].path}?limit=100`);
-          if (active) setParents((previous) => ({ ...previous, [field]: rows }));
-        } catch {
-          if (active) setParentError(true);
-        }
-      }),
+      Object.entries(relations)
+        .filter(([field]) => field !== "parentTaskId")
+        .map(async ([field, parent]) => {
+          try {
+            const rows = await api<Row[]>(`${resourceRegistry[parent].path}?limit=100`);
+            if (active) setParents((previous) => ({ ...previous, [field]: rows }));
+          } catch {
+            if (active) setParentError(true);
+          }
+        }),
     );
     return () => {
       active = false;
@@ -152,6 +154,7 @@ export function ResourceEditor({
     const input: Record<string, unknown> = {};
     const parsing: Record<string, string> = {};
     for (const [key, property] of Object.entries(properties)) {
+      if (key === "parentTaskId") continue;
       const value = values[key];
       if (value === "" || value === undefined) {
         if (row && key === "recurrenceRule") input[key] = null;
@@ -250,7 +253,7 @@ export function ResourceEditor({
             .filter(
               ([key]) =>
                 (!polymorphic || !targetFields.includes(key) || key === targetField) &&
-                !["exchangeRateId", "occurrenceDate", "completedAt"].includes(key) &&
+                !["exchangeRateId", "occurrenceDate", "completedAt", "parentTaskId"].includes(key) &&
                 (resource !== "reminderRules" || key !== "exactAt" || values.triggerType === "exact") &&
                 (resource !== "reminderRules" || key !== "offsetMinutes" || values.triggerType === "offset") &&
                 (resource !== "calendarEvents" ||
@@ -311,7 +314,9 @@ export function ResourceEditor({
                     value={String(value ?? "")}
                     onChange={(event) => update(key, event.target.value)}
                   >
-                    <option value="">{t("noSelection")}</option>
+                    {!options.includes("none") && property.default === undefined && !required && (
+                      <option value="">{t("noSelection")}</option>
+                    )}
                     {options.map((option) => (
                       <option key={String(option)} value={String(option)}>
                         {t(String(option))}
