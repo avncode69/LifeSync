@@ -31,9 +31,13 @@ export function Logo({ compact = false }: { compact?: boolean }) {
       aria-label="LifeSync"
       className="lifesync-brand flex items-center gap-2.5 text-lg font-semibold tracking-tight"
     >
-      <span className="lifesync-brand-mark flex size-9 items-center justify-center rounded-xl text-sm font-bold text-white">
-        LS
-      </span>
+      <img
+        src="/icons/lifesync-logo.png"
+        alt=""
+        width={44}
+        height={44}
+        className="size-11 shrink-0 rounded-xl object-contain"
+      />
       <span className={compact ? "hidden sm:inline" : ""}>LifeSync</span>
     </a>
   );

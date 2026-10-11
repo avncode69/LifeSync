@@ -1,7 +1,7 @@
-const SHELL = "lifesync-shell-v1";
+const SHELL = "lifesync-shell-v2";
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(SHELL).then((cache) => cache.addAll(["/offline", "/icons/icon.svg", "/manifest.webmanifest"])),
+    caches.open(SHELL).then((cache) => cache.addAll(["/offline", "/icons/lifesync-logo.png", "/manifest.webmanifest"])),
   );
 });
 self.addEventListener("activate", (event) => {
@@ -55,8 +55,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification("LifeSync", {
       body: "LifeSync",
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
+      icon: "/icons/lifesync-logo.png",
+      badge: "/icons/lifesync-logo.png",
       tag: data?.id,
       data: { url },
     }),

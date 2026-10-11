@@ -1,5 +1,4 @@
 "use client";
-import { Fingerprint } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -125,8 +124,8 @@ export function AuthForm({ mode, embedded = false }: { mode: Mode; embedded?: bo
         </div>
         <div className={embedded ? "w-full" : glass ? "auth-login-card" : "m-auto w-full max-w-sm py-16"}>
           {glass && (
-            <div className="mx-auto mb-5 flex size-12 items-center justify-center rounded-2xl border border-foreground/15 bg-foreground/5">
-              <Fingerprint aria-hidden="true" className="size-7 text-foreground/90" />
+            <div className="mx-auto mb-5 size-16 overflow-hidden rounded-2xl border border-foreground/15">
+              <img src="/icons/lifesync-logo.png" alt="" width={64} height={64} className="size-full object-contain" />
             </div>
           )}
           <Heading

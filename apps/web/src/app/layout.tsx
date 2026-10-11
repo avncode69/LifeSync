@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: { default: "LifeSync", template: "%s · LifeSync" },
   description: "Your life. In sync.",
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/icons/icon.svg", apple: "/icons/icon-192.png" },
+  icons: { icon: "/icons/lifesync-logo.png", apple: "/icons/lifesync-logo.png" },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "LifeSync" },
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#4c1d95" };
