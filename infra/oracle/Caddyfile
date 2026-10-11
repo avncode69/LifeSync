@@ -1,6 +1,11 @@
 {$APP_HOST} {
   encode zstd gzip
-  @api path /api /api/* /health
+  # /health belongs to the wellbeing page. Keep infrastructure probes separate.
+  handle /_health {
+    rewrite * /health
+    reverse_proxy api:8787
+  }
+  @api path /api /api/*
   handle @api {
     reverse_proxy api:8787 {
       header_up CF-Connecting-IP {remote_host}
