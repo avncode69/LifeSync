@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { api, errorKey, label, type Row, useApi } from "@/lib/api";
 import { localDate } from "@/lib/time";
 import { Capture } from "./capture";
+import { LifeSelect } from "./controls";
 import { useLocale } from "./providers";
 import { useAccount } from "./shell";
 import { ErrorState, Loading } from "./states";
@@ -256,7 +257,7 @@ export function Dashboard() {
                 />
                 {t(widget.id)}
               </label>
-              <select
+              <LifeSelect
                 className="control w-auto"
                 aria-label={t("size")}
                 value={widget.size}
@@ -273,7 +274,7 @@ export function Dashboard() {
                     {t(size)}
                   </option>
                 ))}
-              </select>
+              </LifeSelect>
               <Button
                 variant="outline"
                 aria-label={t("moveUp")}

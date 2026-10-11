@@ -1,12 +1,10 @@
-import { PricingContent, PublicFooter, PublicHeader } from "@/components/lifesync/public";
+import { PricingContent, PublicPage } from "@/components/lifesync/public";
 export default function Page() {
   return (
-    <>
-      <PublicHeader />
-      <main className="min-h-[65vh]">
+    <PublicPage>
+      <main className="flex-1">
         <PricingContent />
       </main>
-      <PublicFooter />
-    </>
+    </PublicPage>
   );
 }

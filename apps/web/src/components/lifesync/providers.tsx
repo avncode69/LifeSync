@@ -4,6 +4,7 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
+import { LifeSelect } from "./controls";
 
 const LocaleContext = createContext({
   locale: "uk" as Locale,
@@ -54,7 +55,7 @@ export function AppearanceControls() {
       >
         {locale.toUpperCase()}
       </Button>
-      <select
+      <LifeSelect
         className="control w-auto text-xs"
         aria-label={t("theme")}
         value={theme ?? "system"}
@@ -65,7 +66,7 @@ export function AppearanceControls() {
             {t(value)}
           </option>
         ))}
-      </select>
+      </LifeSelect>
     </div>
   );
 }

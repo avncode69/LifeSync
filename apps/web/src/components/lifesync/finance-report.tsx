@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { api, errorKey, useApi } from "@/lib/api";
 import { localDate } from "@/lib/time";
+import { LifeDateInput, LifeSelect } from "./controls";
 import { useLocale } from "./providers";
 import { useAccount } from "./shell";
 import { Empty, ErrorState, Loading } from "./states";
@@ -84,20 +85,32 @@ export function Transfer({ accounts, refresh }: { accounts: Account[]; refresh: 
           <DialogTitle>{t("transferFunds")}</DialogTitle>
           <DialogDescription>{t("transactions")}</DialogDescription>
           <form onSubmit={submit} className="space-y-4">
-            <label className="block space-y-2">
+            <label htmlFor="transfer-source" className="block space-y-2">
               <span>{t("sourceAccount")}</span>
-              <select required className="control" value={source} onChange={(e) => setSource(e.target.value)}>
+              <LifeSelect
+                id="transfer-source"
+                required
+                className="control"
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+              >
                 <option value="">{t("noSelection")}</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name} · {a.currency}
                   </option>
                 ))}
-              </select>
+              </LifeSelect>
             </label>
-            <label className="block space-y-2">
+            <label htmlFor="transfer-destination" className="block space-y-2">
               <span>{t("receivingAccount")}</span>
-              <select required className="control" value={destination} onChange={(e) => setDestination(e.target.value)}>
+              <LifeSelect
+                id="transfer-destination"
+                required
+                className="control"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+              >
                 <option value="">{t("noSelection")}</option>
                 {accounts
                   .filter((a) => a.id !== source)
@@ -106,7 +119,7 @@ export function Transfer({ accounts, refresh }: { accounts: Account[]; refresh: 
                       {a.name} · {a.currency}
                     </option>
                   ))}
-              </select>
+              </LifeSelect>
             </label>
             <label className="block space-y-2">
               <span>
@@ -134,9 +147,16 @@ export function Transfer({ accounts, refresh }: { accounts: Account[]; refresh: 
                 onChange={(e) => setReceived(e.target.value)}
               />
             </label>
-            <label className="block space-y-2">
+            <label htmlFor="transfer-date" className="block space-y-2">
               <span>{t("date")}</span>
-              <input className="control" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
+              <LifeDateInput
+                id="transfer-date"
+                className="control"
+                type="date"
+                required
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
             </label>
             <label className="block space-y-2">
               <span>{t("note")}</span>

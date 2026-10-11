@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api, errorKey, type Row, useApi } from "@/lib/api";
 import { displayInstant } from "@/lib/time";
+import { LifeSelect } from "./controls";
 import { useLocale } from "./providers";
 import { ResourceEditor, ResourcePanel } from "./resource";
 import { useAccount } from "./shell";
@@ -178,7 +179,7 @@ export function Tasks() {
         </Button>
       </div>
       <div className="mt-3 flex items-center justify-between border-t pt-3">
-        <select
+        <LifeSelect
           className="control w-auto min-h-9 py-1 text-xs"
           aria-label={t("status")}
           value={String(row.status)}
@@ -189,7 +190,7 @@ export function Tasks() {
               {t(status)}
             </option>
           ))}
-        </select>
+        </LifeSelect>
         <Button size="icon" variant="ghost" aria-label={t("delete")} onClick={() => void remove(row)}>
           <Trash2 className="size-4 text-muted-foreground" />
         </Button>
@@ -223,7 +224,7 @@ export function Tasks() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <select
+        <LifeSelect
           className="control w-auto"
           aria-label={t("filter")}
           value={filter}
@@ -235,8 +236,8 @@ export function Tasks() {
               {t(status)}
             </option>
           ))}
-        </select>
-        <select
+        </LifeSelect>
+        <LifeSelect
           className="control w-auto"
           aria-label={t("projects")}
           value={project}
@@ -248,8 +249,8 @@ export function Tasks() {
               {String(item.name)}
             </option>
           ))}
-        </select>
-        <select
+        </LifeSelect>
+        <LifeSelect
           className="control w-auto"
           aria-label={t("sort")}
           value={sort}
@@ -260,7 +261,7 @@ export function Tasks() {
               {t(key)}
             </option>
           ))}
-        </select>
+        </LifeSelect>
       </div>
       {selected.length > 0 && (
         <div className="flex items-center gap-4 rounded-xl bg-primary/10 p-3">

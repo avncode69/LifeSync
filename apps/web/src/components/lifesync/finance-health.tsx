@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api, errorKey, type Row, useApi } from "@/lib/api";
 import { localDate } from "@/lib/time";
+import { LifeDateInput } from "./controls";
 import { FinanceReport, Transfer } from "./finance-report";
 import { useLocale } from "./providers";
 import { ResourcePanel, ResourceTabs } from "./resource";
@@ -257,7 +258,7 @@ export function Health() {
     <div className="space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="page-heading">{t("health")}</h1>
-        <input
+        <LifeDateInput
           className="control w-auto"
           type="date"
           aria-label={t("date")}

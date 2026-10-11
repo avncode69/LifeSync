@@ -8,7 +8,7 @@ import { Logo } from "./public";
 import { TurnstileField, usePublicConfig } from "./turnstile";
 
 type Mode = "login" | "register" | "forgot" | "reset" | "verify";
-export function AuthForm({ mode }: { mode: Mode }) {
+export function AuthForm({ mode, embedded = false }: { mode: Mode; embedded?: boolean }) {
   const { t } = useLocale();
   const config = usePublicConfig();
   const [token, setToken] = useState("");
@@ -97,9 +97,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
         : mode === "reset"
           ? ["password"]
           : ["email"];
+  const Container = embedded ? "div" : "main";
   return (
-    <main className="grid min-h-dvh lg:grid-cols-2">
-      <div className="hidden flex-col justify-between bg-violet-950 p-12 text-white lg:flex">
+    <Container className={embedded ? "w-full" : "grid min-h-dvh lg:grid-cols-2"}>
+      <div className={embedded ? "hidden" : "hidden flex-col justify-between bg-violet-950 p-12 text-white lg:flex"}>
         <Logo />
         <div>
           <p className="mb-6 text-sm text-violet-300">{t("heroTag")}</p>
@@ -108,14 +109,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
         </div>
         <p className="text-sm text-violet-300">© LifeSync</p>
       </div>
-      <div className="flex flex-col p-5 sm:p-10">
-        <div className="flex items-center justify-between">
+      <div className={embedded ? "w-full" : "flex flex-col p-5 sm:p-10"}>
+        <div className={embedded ? "hidden" : "flex items-center justify-between"}>
           <div className="lg:invisible">
             <Logo />
           </div>
           <AppearanceControls />
         </div>
-        <div className="m-auto w-full max-w-sm py-16">
+        <div className={embedded ? "w-full" : "m-auto w-full max-w-sm py-16"}>
           <h2 className="text-3xl font-bold tracking-tight">
             {t(mode === "forgot" || mode === "reset" ? "reset" : mode)}
           </h2>
@@ -129,7 +130,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
             {fields.map((key) => (
               <div key={key}>
                 <label className="mb-2 block text-sm font-medium" htmlFor={key}>
-                  {t(key)}
+                  {t(key === "name" ? "accountName" : key)}
                 </label>
                 <input
                   id={key}
@@ -199,6 +200,6 @@ export function AuthForm({ mode }: { mode: Mode }) {
           </div>
         </div>
       </div>
-    </main>
+    </Container>
   );
 }

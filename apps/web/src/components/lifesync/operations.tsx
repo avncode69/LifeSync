@@ -4,12 +4,11 @@ import type { ResourceName } from "@lifesync/contracts";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-
 import { Button } from "@/components/ui/button";
-
 import { api, errorKey, label, type Row, useApi } from "@/lib/api";
 import { registerPushSubscription } from "@/lib/push";
 import { localDate } from "@/lib/time";
+import { LifeSelect } from "./controls";
 import { useLocale } from "./providers";
 import { ResourceEditor, ResourcePanel, ResourceTabs } from "./resource";
 import { useAccount } from "./shell";
@@ -409,7 +408,7 @@ function ConvertInbox({ row, refresh }: { row: Row; refresh: () => void }) {
         </p>
       ) : (
         <div className="flex gap-2">
-          <select
+          <LifeSelect
             className="control"
             aria-label={t("target")}
             value={target}
@@ -420,7 +419,7 @@ function ConvertInbox({ row, refresh }: { row: Row; refresh: () => void }) {
                 {t(resource)}
               </option>
             ))}
-          </select>
+          </LifeSelect>
           <Button variant="outline" onClick={() => setOpen(true)}>
             {t("convert")}
           </Button>

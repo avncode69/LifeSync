@@ -1,4 +1,5 @@
 "use client";
+import { LifeSelect } from "./controls";
 import { useLocale } from "./providers";
 
 const presets = {
@@ -28,7 +29,7 @@ export function RecurrenceInput({
   }
   return (
     <div className="space-y-3">
-      <select
+      <LifeSelect
         id="field-recurrenceRule"
         className="control"
         disabled={disabled}
@@ -46,7 +47,7 @@ export function RecurrenceInput({
             {t(key)}
           </option>
         ))}
-      </select>
+      </LifeSelect>
       {selected === "customInterval" && (
         <div className="space-y-3 rounded-xl border p-3">
           <div className="flex gap-2">
@@ -60,7 +61,7 @@ export function RecurrenceInput({
               disabled={disabled}
               onChange={(event) => custom(frequency, Number(event.target.value), weekdays)}
             />
-            <select
+            <LifeSelect
               className="control"
               value={frequency}
               disabled={disabled}
@@ -72,7 +73,7 @@ export function RecurrenceInput({
                   {t(key.toLowerCase())}
                 </option>
               ))}
-            </select>
+            </LifeSelect>
           </div>
           {frequency === "WEEKLY" && (
             <div className="flex flex-wrap gap-2">

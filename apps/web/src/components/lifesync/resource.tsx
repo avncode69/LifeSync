@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { api, errorKey, label, type Row, useApi } from "@/lib/api";
 import { displayInstant, inputInstant, localInput } from "@/lib/time";
+import { LifeDateInput, LifeSelect } from "./controls";
 import { useLocale } from "./providers";
 import { RecurrenceInput } from "./recurrence";
 import { useAccount } from "./shell";
@@ -226,7 +227,7 @@ export function ResourceEditor({
               <label htmlFor="target-type" className="mb-2 block text-sm font-medium">
                 {t("target")}
               </label>
-              <select
+              <LifeSelect
                 id="target-type"
                 className="control"
                 value={targetField}
@@ -242,7 +243,7 @@ export function ResourceEditor({
                     {t(key)}
                   </option>
                 ))}
-              </select>
+              </LifeSelect>
             </div>
           )}
           {Object.entries(properties)
@@ -282,14 +283,18 @@ export function ResourceEditor({
               };
               if (relation)
                 input = (
-                  <select {...common} value={String(value ?? "")} onChange={(event) => update(key, event.target.value)}>
+                  <LifeSelect
+                    {...common}
+                    value={String(value ?? "")}
+                    onChange={(event) => update(key, event.target.value)}
+                  >
                     <option value="">{t("noSelection")}</option>
                     {relation.map((parent) => (
                       <option key={parent.id} value={parent.id}>
                         {label(parent)}
                       </option>
                     ))}
-                  </select>
+                  </LifeSelect>
                 );
               else if (key === "recurrenceRule")
                 input = (
@@ -301,14 +306,18 @@ export function ResourceEditor({
                 );
               else if (options)
                 input = (
-                  <select {...common} value={String(value ?? "")} onChange={(event) => update(key, event.target.value)}>
+                  <LifeSelect
+                    {...common}
+                    value={String(value ?? "")}
+                    onChange={(event) => update(key, event.target.value)}
+                  >
                     <option value="">{t("noSelection")}</option>
                     {options.map((option) => (
                       <option key={String(option)} value={String(option)}>
                         {t(String(option))}
                       </option>
                     ))}
-                  </select>
+                  </LifeSelect>
                 );
               else if (type === "boolean")
                 input = (
@@ -356,33 +365,32 @@ export function ResourceEditor({
               else {
                 const dateTime = property.format === "date-time";
                 const date = property.format === "date";
-                input = (
-                  <input
-                    {...common}
-                    type={
-                      dateTime
-                        ? "datetime-local"
-                        : date
-                          ? "date"
-                          : type === "integer" || type === "number"
-                            ? "number"
-                            : key === "color"
-                              ? "color"
-                              : "text"
-                    }
-                    min={property.minimum}
-                    max={property.maximum}
-                    minLength={property.minLength}
-                    maxLength={property.maxLength}
-                    step={type === "integer" ? "1" : "any"}
-                    value={
-                      dateTime && typeof value === "string" && (value.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(value))
-                        ? localInput(value, timezone)
-                        : String(value ?? "")
-                    }
-                    onChange={(event) => update(key, event.target.value)}
-                  />
-                );
+                input =
+                  dateTime || date ? (
+                    <LifeDateInput
+                      {...common}
+                      type={dateTime ? "datetime-local" : "date"}
+                      required={required}
+                      value={
+                        dateTime && typeof value === "string" && (value.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(value))
+                          ? localInput(value, timezone)
+                          : String(value ?? "")
+                      }
+                      onChange={(event) => update(key, event.target.value)}
+                    />
+                  ) : (
+                    <input
+                      {...common}
+                      type={type === "integer" || type === "number" ? "number" : key === "color" ? "color" : "text"}
+                      min={property.minimum}
+                      max={property.maximum}
+                      minLength={property.minLength}
+                      maxLength={property.maxLength}
+                      step={type === "integer" ? "1" : "any"}
+                      value={String(value ?? "")}
+                      onChange={(event) => update(key, event.target.value)}
+                    />
+                  );
               }
               return (
                 <div

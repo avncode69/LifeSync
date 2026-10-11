@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { api, errorKey, type Row, useApi } from "@/lib/api";
+import { LifeSelect } from "./controls";
 import { useLocale } from "./providers";
 import { navigation, useAccount } from "./shell";
 import { ErrorState, Loading } from "./states";
@@ -163,7 +164,7 @@ export function Settings({ onboarding = false }: { onboarding?: boolean }) {
                     <label className="mb-2 block text-sm font-medium" htmlFor={key}>
                       {t(key)}
                     </label>
-                    <select
+                    <LifeSelect
                       id={key}
                       name={key}
                       className="control"
@@ -178,7 +179,7 @@ export function Settings({ onboarding = false }: { onboarding?: boolean }) {
                             : t(option)}
                         </option>
                       ))}
-                    </select>
+                    </LifeSelect>
                   </div>
                 ))}
               </div>
