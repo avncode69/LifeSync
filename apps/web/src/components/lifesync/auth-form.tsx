@@ -1,4 +1,5 @@
 "use client";
+import { Fingerprint } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -98,9 +99,15 @@ export function AuthForm({ mode, embedded = false }: { mode: Mode; embedded?: bo
           ? ["password"]
           : ["email"];
   const Container = embedded ? "div" : "main";
+  const glass = mode === "login" && !embedded;
+  const Heading = glass ? "h1" : "h2";
   return (
-    <Container className={embedded ? "w-full" : "grid min-h-dvh lg:grid-cols-2"}>
-      <div className={embedded ? "hidden" : "hidden flex-col justify-between bg-violet-950 p-12 text-white lg:flex"}>
+    <Container className={embedded ? "w-full" : glass ? "auth-login-page" : "grid min-h-dvh lg:grid-cols-2"}>
+      <div
+        className={
+          embedded || glass ? "hidden" : "hidden flex-col justify-between bg-violet-950 p-12 text-white lg:flex"
+        }
+      >
         <Logo />
         <div>
           <p className="mb-6 text-sm text-violet-300">{t("heroTag")}</p>
@@ -109,19 +116,34 @@ export function AuthForm({ mode, embedded = false }: { mode: Mode; embedded?: bo
         </div>
         <p className="text-sm text-violet-300">© LifeSync</p>
       </div>
-      <div className={embedded ? "w-full" : "flex flex-col p-5 sm:p-10"}>
-        <div className={embedded ? "hidden" : "flex items-center justify-between"}>
-          <div className="lg:invisible">
+      <div className={embedded ? "w-full" : glass ? "auth-login-content" : "flex flex-col p-5 sm:p-10"}>
+        <div className={embedded ? "hidden" : glass ? "auth-login-header" : "flex items-center justify-between"}>
+          <div className={glass ? "" : "lg:invisible"}>
             <Logo />
           </div>
           <AppearanceControls />
         </div>
-        <div className={embedded ? "w-full" : "m-auto w-full max-w-sm py-16"}>
-          <h2 className="text-3xl font-bold tracking-tight">
+        <div className={embedded ? "w-full" : glass ? "auth-login-card" : "m-auto w-full max-w-sm py-16"}>
+          {glass && (
+            <div className="mx-auto mb-5 flex size-12 items-center justify-center rounded-2xl border border-foreground/15 bg-foreground/5">
+              <Fingerprint aria-hidden="true" className="size-7 text-foreground/90" />
+            </div>
+          )}
+          <Heading
+            className={
+              glass ? "text-center text-2xl font-semibold tracking-tight" : "text-3xl font-bold tracking-tight"
+            }
+          >
             {t(mode === "forgot" || mode === "reset" ? "reset" : mode)}
-          </h2>
-          <p className="mt-3 text-muted-foreground">{t("authSubtitle")}</p>
-          {(mode === "login" || mode === "register") && config?.googleIdentityEnabled && (
+          </Heading>
+          <p
+            className={
+              glass ? "mt-2 text-center text-sm leading-6 text-muted-foreground" : "mt-3 text-muted-foreground"
+            }
+          >
+            {t(glass ? "loginSubtitle" : "authSubtitle")}
+          </p>
+          {!glass && (mode === "login" || mode === "register") && config?.googleIdentityEnabled && (
             <Button variant="outline" className="mt-8 min-h-12 w-full" disabled={pending} onClick={() => void google()}>
               {t("google")}
             </Button>
@@ -135,7 +157,7 @@ export function AuthForm({ mode, embedded = false }: { mode: Mode; embedded?: bo
                 <input
                   id={key}
                   name={key}
-                  className="control"
+                  className={glass ? "control auth-login-input" : "control"}
                   type={key === "password" ? "password" : key === "email" ? "email" : "text"}
                   autoComplete={key === "password" ? (mode === "login" ? "current-password" : "new-password") : key}
                   aria-invalid={!!errors[key]}
@@ -149,6 +171,13 @@ export function AuthForm({ mode, embedded = false }: { mode: Mode; embedded?: bo
                 )}
               </div>
             ))}
+            {glass && (
+              <div className="flex justify-end">
+                <a className="auth-login-link text-xs" href="/forgot-password">
+                  {t("forgot")}
+                </a>
+              </div>
+            )}
             {mode === "register" && (
               <label className="flex items-start gap-3 text-sm">
                 <input name="acceptance" type="checkbox" className="mt-1 size-4 accent-violet-600" />
@@ -174,9 +203,10 @@ export function AuthForm({ mode, embedded = false }: { mode: Mode; embedded?: bo
               </p>
             )}
             <Button
+              variant={glass ? "secondary" : "default"}
               disabled={pending || (!!config?.turnstileSiteKey && (mode === "register" || mode === "forgot") && !token)}
               type="submit"
-              className="min-h-12 w-full"
+              className={glass ? "auth-login-submit min-h-11 w-full rounded-xl" : "min-h-12 w-full"}
             >
               {t(
                 pending
@@ -189,15 +219,46 @@ export function AuthForm({ mode, embedded = false }: { mode: Mode; embedded?: bo
               )}
             </Button>
           </form>
-          <div className="mt-7 flex flex-wrap justify-between gap-3 text-sm text-primary">
-            <a href={mode === "login" ? "/register" : "/login"}>{t(mode === "login" ? "register" : "login")}</a>
-            {mode === "login" && (
-              <>
-                <a href="/forgot-password">{t("forgot")}</a>
-                <a href="/verify-email">{t("verify")}</a>
-              </>
-            )}
-          </div>
+          {glass && config?.googleIdentityEnabled && (
+            <div className="mt-6">
+              <div className="mb-5 flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                <span>{t("authOr")}</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <Button
+                variant="outline"
+                className="min-h-11 w-full rounded-xl bg-foreground/5"
+                disabled={pending}
+                onClick={() => void google()}
+              >
+                {t("google")}
+              </Button>
+            </div>
+          )}
+          {glass ? (
+            <div className="mt-7 space-y-4 text-center text-sm">
+              <p className="text-muted-foreground">
+                {t("loginNewAccount")}{" "}
+                <a className="auth-login-link font-medium" href="/register">
+                  {t("register")}
+                </a>
+              </p>
+              <a className="auth-login-link inline-block text-xs" href="/verify-email">
+                {t("verify")}
+              </a>
+            </div>
+          ) : (
+            <div className="mt-7 flex flex-wrap justify-between gap-3 text-sm text-primary">
+              <a href={mode === "login" ? "/register" : "/login"}>{t(mode === "login" ? "register" : "login")}</a>
+              {mode === "login" && (
+                <>
+                  <a href="/forgot-password">{t("forgot")}</a>
+                  <a href="/verify-email">{t("verify")}</a>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </Container>

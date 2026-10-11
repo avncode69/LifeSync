@@ -432,3 +432,105 @@ body::before {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Login has its own quiet glass surface; embedded registration keeps its layout. */
+.auth-login-page {
+  position: relative;
+  min-height: 100dvh;
+  isolation: isolate;
+  overflow: clip;
+  background: var(--background);
+}
+.auth-login-page::before,
+.auth-login-page::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  width: min(42rem, 90vw);
+  height: 85rem;
+  top: -62rem;
+  left: 50%;
+  transform: rotate(38deg);
+  filter: blur(36px);
+  opacity: 0.16;
+  background: linear-gradient(90deg, transparent, var(--color-neutral-400), transparent);
+}
+.auth-login-page::after {
+  width: min(15rem, 35vw);
+  left: 62%;
+  top: -59rem;
+  opacity: 0.1;
+}
+.dark .auth-login-page {
+  background: var(--color-neutral-950);
+}
+.auth-login-content {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  padding: 1.5rem;
+}
+.auth-login-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.auth-login-card {
+  width: 100%;
+  max-width: 26rem;
+  margin: auto;
+  padding: 2rem;
+  border: 1px solid color-mix(in srgb, var(--foreground) 15%, transparent);
+  border-radius: 1.75rem;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--card) 88%, var(--foreground)), var(--card));
+  box-shadow: inset 0 1px 1px color-mix(in srgb, var(--foreground) 12%, transparent), 0 24px 80px color-mix(in srgb, var(--color-neutral-950) 15%, transparent);
+  backdrop-filter: blur(24px);
+}
+.auth-login-card .auth-login-input {
+  min-height: 46px;
+  background: var(--muted);
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  font-size: 0.875rem;
+}
+.auth-login-input:autofill {
+  -webkit-text-fill-color: var(--foreground);
+  -webkit-box-shadow: 0 0 0 1000px var(--muted) inset;
+  caret-color: var(--foreground);
+}
+.auth-login-card .auth-login-submit {
+  background: var(--foreground);
+  color: var(--background);
+  box-shadow: none;
+}
+.auth-login-card .auth-login-submit:hover {
+  background: color-mix(in srgb, var(--foreground) 90%, var(--background));
+}
+.auth-login-link {
+  color: var(--muted-foreground);
+  text-underline-offset: 4px;
+}
+.auth-login-link:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+}
+.auth-login-card :focus-visible {
+  outline-color: var(--foreground);
+  --color-ring: var(--muted-foreground);
+}
+@media (max-width: 480px) {
+  .auth-login-content {
+    padding: 1.25rem;
+    gap: 2.5rem;
+  }
+  .auth-login-card {
+    padding: 1.5rem;
+  }
+}
+@media (max-height: 700px) {
+  .auth-login-content {
+    gap: 2rem;
+  }
+}

@@ -1,6 +1,9 @@
 export type Locale = "uk" | "en";
 
 const pairs = {
+  loginSubtitle: ["Welcome back. Sign in to your space.", "З поверненням. Увійдіть у свій простір."],
+  loginNewAccount: ["New to LifeSync?", "Ще немає акаунта?"],
+  authOr: ["or", "або"],
   dashboardPreview: [
     "LifeSync dashboard with tasks, calendar and health overview",
     "Огляд LifeSync із завданнями, календарем і здоров’ям",
