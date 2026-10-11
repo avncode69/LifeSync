@@ -25,7 +25,7 @@
 - [x] Match the original sidebar/header density in `shell.tsx`, retaining all routes, account controls, unread notifications and search.
 - [x] Restore dashboard visual hierarchy and compact card contents in `dashboard.tsx`; retain customization and existing data contracts.
 - [x] Check types, lint, production CSS/build, desktop/mobile and dark/light screenshots; obtain independent review.
-- [ ] Commit and push the verified change to the existing repository; rebuild and restart only app services on Oracle; verify the live result.
+- [x] Commit and push the verified change to the existing repository; rebuild and restart only app services on Oracle; verify the live result.
 
 ## Execution notes
 
@@ -40,3 +40,5 @@
 - Preview uses local demonstration fixtures solely to capture the real UI, not production data or API configuration. Fixtures remain ignored under .local.
 
 - 2026-10-11: user requested a neutral dark theme. Replaced dark surface tokens with black/gray, removed violet/cyan ambient glow and active-navigation glow. Production build passed; refreshed dashboard preview from the actual UI.
+
+- 2026-10-11 deployment verified: server build exit 0; only web recreated; all six services running, API/database/jobs healthy. Public /health returned ok. Live CSS background rgb(12,12,12), ambient transparent, Inter font and refreshed JPG preview verified. Previous full build failed on npm registry metadata timeout; rebuilt frontend on the existing image with unchanged installed dependencies. Neutral mobile viewport override did not apply, so no new mobile-size verification claim.
