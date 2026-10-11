@@ -49,24 +49,24 @@
   --accent-glow: rgba(124, 58, 237, 0.12);
 }
 .dark {
-  --background: #0b0f17;
-  --foreground: #f1f5f9;
-  --card: rgba(17, 24, 39, 0.55);
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #164e63;
+  --background: #0c0c0c;
+  --foreground: #f3f3f3;
+  --card: rgba(24, 24, 24, 0.92);
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #262626;
   --primary: #a78bfa;
-  --primary-foreground: #0b0f17;
+  --primary-foreground: #0c0c0c;
   --border: rgba(255, 255, 255, 0.07);
   --destructive: #fb7185;
-  --sidebar-bg: rgba(10, 13, 22, 0.85);
-  --header-bg: rgba(10, 13, 22, 0.8);
+  --sidebar-bg: rgba(17, 17, 17, 0.96);
+  --header-bg: rgba(17, 17, 17, 0.96);
   --input-bg: rgba(255, 255, 255, 0.05);
   --input-border: rgba(255, 255, 255, 0.1);
   --subcard-bg: rgba(255, 255, 255, 0.03);
-  --ambient-a: rgba(124, 58, 237, 0.12);
-  --ambient-b: rgba(6, 182, 212, 0.1);
-  --accent-glow: rgba(124, 58, 237, 0.25);
+  --ambient-a: transparent;
+  --ambient-b: transparent;
+  --accent-glow: transparent;
 }
 * {
   border-color: var(--border);
@@ -329,4 +329,10 @@ body::before {
     margin: -1rem -1rem 1rem;
     padding: 0.875rem 1rem;
   }
+}
+
+.dark .lifesync-navigation a[aria-current="page"] {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
 }

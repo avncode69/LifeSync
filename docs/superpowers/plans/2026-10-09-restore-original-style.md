@@ -38,3 +38,5 @@
 - Browser: actual fonts Inter/Outfit and 1280px desktop / 390px mobile dark dashboard inspected, without horizontal overflow; light desktop theme inspected. Header theme reset reproduced and corrected by applying each fetched preference object only once.
 - Independent review: contrast, responsive header shrink and saved greeting widget size corrected. Saved widget order retained. Defaults now place tasks and capture first.
 - Preview uses local demonstration fixtures solely to capture the real UI, not production data or API configuration. Fixtures remain ignored under .local.
+
+- 2026-10-11: user requested a neutral dark theme. Replaced dark surface tokens with black/gray, removed violet/cyan ambient glow and active-navigation glow. Production build passed; refreshed dashboard preview from the actual UI.
