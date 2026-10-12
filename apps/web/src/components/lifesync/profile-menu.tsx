@@ -50,8 +50,8 @@ export function ProfileMenu({
       .toUpperCase() || "LS";
   const planLabel = plan ? t(plan === "PRO" ? "pro" : "free") : t("plan");
   const links = [
-    { key: "profile", href: "/settings#name", icon: UserRound },
-    { key: "personalization", href: "/settings#locale", icon: SlidersHorizontal },
+    { key: "profile", href: "/profile", icon: UserRound },
+    { key: "personalization", href: "/personalization", icon: SlidersHorizontal },
     { key: "settings", href: "/settings", icon: Settings2 },
     { key: "trash", href: "/trash", icon: Trash2 },
   ];

@@ -553,7 +553,6 @@ function TaskDetails({ row, onClose }: { row: Row; onClose: () => void }) {
       <ResourcePanel resource="taskChecklistItems" title="checklist" initial={{ taskId: row.id }} />
       <ResourcePanel resource="taskTags" title="tags" initial={{ taskId: row.id }} />
       <ResourcePanel resource="reminderRules" title="reminders" initial={{ taskId: row.id }} />
-      <ResourcePanel resource="driveLinks" initial={{ taskId: row.id }} />
     </div>
   );
 }

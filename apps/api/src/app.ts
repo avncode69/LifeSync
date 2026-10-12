@@ -12,7 +12,7 @@ import type { Database } from "@lifesync/db";
 import * as schema from "@lifesync/db";
 import { localDay } from "@lifesync/domain";
 import type { AIProvider } from "@lifesync/integrations";
-import { and, asc, desc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { secureHeaders } from "hono/secure-headers";
@@ -376,7 +376,7 @@ export function createApp(dependencies: AppDependencies) {
         userAgent: schema.session.userAgent,
       })
       .from(schema.session)
-      .where(eq(schema.session.userId, c.get("identity").id));
+      .where(and(eq(schema.session.userId, c.get("identity").id), gt(schema.session.expiresAt, new Date())));
     return c.json({ data: rows.map((s) => ({ ...s, current: s.id === c.get("sessionId") })) });
   });
   app.delete("/api/v1/sessions/:id", async (c) => {

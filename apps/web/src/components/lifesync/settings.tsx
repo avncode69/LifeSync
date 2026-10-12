@@ -1,19 +1,26 @@
 "use client";
 import { aiPermissionsSchema, type Preferences, updatePreferencesSchema } from "@lifesync/contracts";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { api, errorKey, type Row, useApi } from "@/lib/api";
+import { defaultDashboardWidgets } from "@/lib/dashboard-layout";
 import { LifeSelect } from "./controls";
 import { useLocale } from "./providers";
 import { navigation, useAccount } from "./shell";
 import { ErrorState, Loading } from "./states";
-export function Settings({ onboarding = false }: { onboarding?: boolean }) {
+
+type SettingsMode = "profile" | "personalization" | "settings";
+export function Settings({ onboarding = false, mode = "settings" }: { onboarding?: boolean; mode?: SettingsMode }) {
+  const profileScreen = onboarding || mode === "profile";
+  const personalizationScreen = onboarding || mode === "personalization";
+  const accountScreen = onboarding || mode === "settings";
   const { t, locale, setLocale } = useLocale();
   const account = useAccount();
   const prefs = useApi<Preferences>("/preferences");
-  const permissions = useApi<Record<string, boolean>>("/ai/permissions");
+  const permissions = useApi<Record<string, boolean>>(accountScreen ? "/ai/permissions" : null);
   const [pending, setPending] = useState(false);
   const [values, setValues] = useState<Preferences>();
   const [permissionValues, setPermissionValues] = useState<Record<string, boolean>>({});
@@ -37,29 +44,33 @@ export function Settings({ onboarding = false }: { onboarding?: boolean }) {
     event.preventDefault();
     if (pending || !values) return;
     const form = Object.fromEntries(new FormData(event.currentTarget));
-    const body = {
-      ...values,
-      notificationOffsets: offsetText
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean)
-        .map(Number),
-      timezone: form.timezone,
-      baseCurrency: form.baseCurrency,
-      locale: form.locale,
-      theme: form.theme,
-      weekStart: Number(form.weekStart),
-      dateFormat: form.dateFormat,
-      timeFormat: form.timeFormat,
-    };
-    delete (body as Record<string, unknown>).id;
-    delete (body as Record<string, unknown>).userId;
-    delete (body as Record<string, unknown>).createdAt;
-    delete (body as Record<string, unknown>).updatedAt;
-    const valid = updatePreferencesSchema.safeParse(body);
+    const body = personalizationScreen
+      ? {
+          timezone: form.timezone,
+          baseCurrency: form.baseCurrency,
+          locale: form.locale,
+          theme: form.theme,
+          weekStart: Number(form.weekStart),
+          dateFormat: form.dateFormat,
+          timeFormat: form.timeFormat,
+          hiddenModules: values.hiddenModules,
+          dashboardLayout: values.dashboardLayout,
+        }
+      : {};
+    if (accountScreen)
+      Object.assign(body, {
+        notificationOffsets: offsetText
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean)
+          .map(Number),
+      });
+    const valid = updatePreferencesSchema.safeParse(
+      personalizationScreen || accountScreen ? body : { locale: values.locale },
+    );
     const profile = z
       .object({ name: z.string().trim().min(1).max(240), image: z.union([z.url(), z.literal("")]).optional() })
-      .safeParse({ name: form.name, image: form.image });
+      .safeParse(profileScreen ? { name: form.name, image: form.image } : { name: "LifeSync" });
     if (!valid.success || !profile.success) {
       setErrors(
         Object.fromEntries(
@@ -73,14 +84,16 @@ export function Settings({ onboarding = false }: { onboarding?: boolean }) {
     setErrors({});
     setPending(true);
     try {
-      await api("/me", {
-        method: "PATCH",
-        body: JSON.stringify({ name: profile.data.name, image: profile.data.image || null }),
-      });
-      await api("/preferences", { method: "PATCH", body: JSON.stringify(valid.data) });
-      if (valid.data.locale) setLocale(valid.data.locale);
+      if (profileScreen)
+        await api("/me", {
+          method: "PATCH",
+          body: JSON.stringify({ name: profile.data.name, image: profile.data.image || null }),
+        });
+      if (personalizationScreen || accountScreen)
+        await api("/preferences", { method: "PATCH", body: JSON.stringify(valid.data) });
+      if (personalizationScreen && valid.data.locale) setLocale(valid.data.locale);
       const checkedPermissions = aiPermissionsSchema.safeParse(permissionValues);
-      if (checkedPermissions.success)
+      if (accountScreen && checkedPermissions.success && permissions.data)
         await api("/ai/permissions", { method: "PATCH", body: JSON.stringify(checkedPermissions.data) });
       if (onboarding) {
         await api("/onboarding", { method: "POST", body: JSON.stringify({ completed: true }) });
@@ -115,7 +128,7 @@ export function Settings({ onboarding = false }: { onboarding?: boolean }) {
   return (
     <div className="space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="page-heading">{t(onboarding ? "onboarding" : "settings")}</h1>
+        <h1 className="page-heading">{t(onboarding ? "onboarding" : mode)}</h1>
         {onboarding && (
           <Button variant="outline" disabled={pending} onClick={() => void skip()}>
             {t("skip")}
@@ -129,141 +142,234 @@ export function Settings({ onboarding = false }: { onboarding?: boolean }) {
       ) : (
         values && (
           <form onSubmit={save} noValidate className="space-y-6">
-            <section className="surface">
-              <h2 className="text-lg font-semibold">{t("profile")}</h2>
-              <div className="mt-5 grid gap-5 md:grid-cols-2">
-                {[
-                  { key: "name", value: account.user?.name },
-                  { key: "image", value: account.user?.image },
-                  { key: "timezone", value: values.timezone },
-                  { key: "baseCurrency", value: values.baseCurrency },
-                ].map(({ key, value }) => (
-                  <div key={key}>
-                    <label className="mb-2 block text-sm font-medium" htmlFor={key}>
-                      {t(key)}
-                    </label>
-                    <input
-                      id={key}
-                      name={key}
-                      className="control"
-                      defaultValue={String(value ?? "")}
-                      maxLength={key === "baseCurrency" ? 3 : 240}
-                      aria-invalid={!!errors[key]}
-                    />
-                    {errors[key] && <p className="mt-1 text-xs text-destructive">{errors[key]}</p>}
+            {(profileScreen || personalizationScreen) && (
+              <section className="surface">
+                <h2 className="text-lg font-semibold">{t(profileScreen ? "profile" : "personalization")}</h2>
+                <div className="mt-5 grid gap-5 md:grid-cols-2">
+                  {[
+                    { key: "name", value: account.user?.name },
+                    { key: "image", value: account.user?.image },
+                    { key: "timezone", value: values.timezone },
+                    { key: "baseCurrency", value: values.baseCurrency },
+                  ]
+                    .filter(({ key }) => (["name", "image"].includes(key) ? profileScreen : personalizationScreen))
+                    .map(({ key, value }) => (
+                      <div key={key}>
+                        <label className="mb-2 block text-sm font-medium" htmlFor={key}>
+                          {t(key)}
+                        </label>
+                        <input
+                          id={key}
+                          name={key}
+                          className="control"
+                          defaultValue={String(value ?? "")}
+                          maxLength={key === "baseCurrency" ? 3 : 240}
+                          aria-invalid={!!errors[key]}
+                        />
+                        {errors[key] && <p className="mt-1 text-xs text-destructive">{errors[key]}</p>}
+                      </div>
+                    ))}
+                  {[
+                    { key: "locale", options: ["uk", "en"] },
+                    { key: "theme", options: ["light", "dark", "system"] },
+                    { key: "weekStart", options: ["1", "0"] },
+                    { key: "dateFormat", options: ["DD.MM.YYYY", "MM/DD/YYYY", "YYYY-MM-DD"] },
+                    { key: "timeFormat", options: ["12h", "24h"] },
+                  ]
+                    .filter(() => personalizationScreen)
+                    .map(({ key, options }) => (
+                      <div key={key}>
+                        <label className="mb-2 block text-sm font-medium" htmlFor={key}>
+                          {t(key)}
+                        </label>
+                        <LifeSelect
+                          id={key}
+                          name={key}
+                          className="control"
+                          defaultValue={String(values[key as keyof Preferences])}
+                        >
+                          {options.map((option) => (
+                            <option key={option} value={option}>
+                              {key === "weekStart"
+                                ? new Intl.DateTimeFormat(locale, { weekday: "long" }).format(
+                                    new Date(2024, 0, Number(option) === 1 ? 1 : 7),
+                                  )
+                                : t(option)}
+                            </option>
+                          ))}
+                        </LifeSelect>
+                      </div>
+                    ))}
+                </div>
+              </section>
+            )}
+            {personalizationScreen && (
+              <section className="surface">
+                <h2 className="text-lg font-semibold">{t("modules")}</h2>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {navigation
+                    .filter((item) =>
+                      ["inbox", "calendar", "projects", "tasks", "habits", "finance", "health", "ai"].includes(
+                        item.key,
+                      ),
+                    )
+                    .map((item) => (
+                      <label key={item.key} className="flex items-center gap-3 rounded-xl border p-3">
+                        <input
+                          className="size-5 accent-violet-600"
+                          type="checkbox"
+                          checked={!values.hiddenModules.includes(item.key as Preferences["hiddenModules"][number])}
+                          onChange={(event) =>
+                            change(
+                              "hiddenModules",
+                              event.target.checked
+                                ? values.hiddenModules.filter((key) => key !== item.key)
+                                : [...values.hiddenModules, item.key],
+                            )
+                          }
+                        />
+                        {t(item.key)}
+                      </label>
+                    ))}
+                </div>
+              </section>
+            )}
+            {personalizationScreen && <DashboardPreferences values={values} change={change} />}
+            {accountScreen && (
+              <section className="surface">
+                <h2 className="text-lg font-semibold">{t("permissions")}</h2>
+                <p className="mt-2 text-sm text-muted-foreground">{t("permissionHelp")}</p>
+                {permissions.loading ? (
+                  <Loading />
+                ) : permissions.error ? (
+                  <ErrorState error={permissions.error} retry={() => void permissions.reload()} />
+                ) : (
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {Object.keys(aiPermissionsSchema.shape).map((key) => (
+                      <label key={key} className="flex items-center gap-3 rounded-xl border p-3">
+                        <input
+                          type="checkbox"
+                          className="size-5 accent-violet-600"
+                          checked={permissionValues[key] ?? false}
+                          onChange={(event) =>
+                            setPermissionValues({ ...permissionValues, [key]: event.target.checked })
+                          }
+                        />
+                        {t(key === "drive" ? "driveLinks" : key)}
+                      </label>
+                    ))}
                   </div>
-                ))}
-                {[
-                  { key: "locale", options: ["uk", "en"] },
-                  { key: "theme", options: ["light", "dark", "system"] },
-                  { key: "weekStart", options: ["1", "0"] },
-                  { key: "dateFormat", options: ["DD.MM.YYYY", "MM/DD/YYYY", "YYYY-MM-DD"] },
-                  { key: "timeFormat", options: ["12h", "24h"] },
-                ].map(({ key, options }) => (
-                  <div key={key}>
-                    <label className="mb-2 block text-sm font-medium" htmlFor={key}>
-                      {t(key)}
-                    </label>
-                    <LifeSelect
-                      id={key}
-                      name={key}
-                      className="control"
-                      defaultValue={String(values[key as keyof Preferences])}
-                    >
-                      {options.map((option) => (
-                        <option key={option} value={option}>
-                          {key === "weekStart"
-                            ? new Intl.DateTimeFormat(locale, { weekday: "long" }).format(
-                                new Date(2024, 0, Number(option) === 1 ? 1 : 7),
-                              )
-                            : t(option)}
-                        </option>
-                      ))}
-                    </LifeSelect>
-                  </div>
-                ))}
-              </div>
-            </section>
-            <section className="surface">
-              <h2 className="text-lg font-semibold">{t("modules")}</h2>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {navigation
-                  .filter((item) =>
-                    [
-                      "inbox",
-                      "calendar",
-                      "projects",
-                      "tasks",
-                      "habits",
-                      "finance",
-                      "health",
-                      "ai",
-                      "workspace",
-                    ].includes(item.key),
-                  )
-                  .map((item) => (
-                    <label key={item.key} className="flex items-center gap-3 rounded-xl border p-3">
-                      <input
-                        className="size-5 accent-violet-600"
-                        type="checkbox"
-                        checked={!values.hiddenModules.includes(item.key as Preferences["hiddenModules"][number])}
-                        onChange={(event) =>
-                          change(
-                            "hiddenModules",
-                            event.target.checked
-                              ? values.hiddenModules.filter((key) => key !== item.key)
-                              : [...values.hiddenModules, item.key],
-                          )
-                        }
-                      />
-                      {t(item.key === "workspace" ? "integrations" : item.key)}
-                    </label>
-                  ))}
-              </div>
-            </section>
-            <section className="surface">
-              <h2 className="text-lg font-semibold">{t("permissions")}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{t("permissionHelp")}</p>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {Object.keys(aiPermissionsSchema.shape).map((key) => (
-                  <label key={key} className="flex items-center gap-3 rounded-xl border p-3">
-                    <input
-                      type="checkbox"
-                      className="size-5 accent-violet-600"
-                      checked={permissionValues[key] ?? false}
-                      onChange={(event) => setPermissionValues({ ...permissionValues, [key]: event.target.checked })}
-                    />
-                    {t(key === "drive" ? "driveLinks" : key)}
-                  </label>
-                ))}
-              </div>
-            </section>
-            <section className="surface">
-              <h2 className="text-lg font-semibold">{t("notificationDefaults")}</h2>
-              <label htmlFor="offsets" className="mt-4 block text-sm">
-                {t("offsetMinutes")}
-              </label>
-              <input
-                id="offsets"
-                className="control mt-2"
-                value={offsetText}
-                aria-invalid={!!errors.notificationOffsets}
-                onChange={(event) => setOffsetText(event.target.value)}
-              />
-            </section>
-            <Button type="submit" className="min-h-11" disabled={pending}>
+                )}
+              </section>
+            )}
+            {accountScreen && (
+              <section className="surface">
+                <h2 className="text-lg font-semibold">{t("notificationDefaults")}</h2>
+                <label htmlFor="offsets" className="mt-4 block text-sm">
+                  {t("offsetMinutes")}
+                </label>
+                <input
+                  id="offsets"
+                  className="control mt-2"
+                  value={offsetText}
+                  aria-invalid={!!errors.notificationOffsets}
+                  onChange={(event) => setOffsetText(event.target.value)}
+                />
+              </section>
+            )}
+            <Button type="submit" className="min-h-11" disabled={pending || (accountScreen && !permissions.data)}>
               {t(pending ? "loading" : "save")}
             </Button>
           </form>
         )
       )}
-      {!onboarding && (
+      {!onboarding && mode === "profile" && <GoogleConnection />}
+      {!onboarding && mode === "settings" && (
         <>
+          <section className="surface space-y-4">
+            <h2 className="text-lg font-semibold">{t("accountSecurity")}</h2>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="outline" asChild>
+                <Link href="/forgot-password">{t("reset")}</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/notifications">{t("managePush")}</Link>
+              </Button>
+            </div>
+          </section>
           <Sessions />
           <Privacy />
         </>
       )}
     </div>
+  );
+}
+function GoogleConnection() {
+  const { t } = useLocale();
+  const connection = useApi<Row>("/integrations/google");
+  return (
+    <section className="surface space-y-4">
+      <h2 className="text-lg font-semibold">Google Workspace</h2>
+      <p className="text-sm text-muted-foreground">{t("integrationHelp")}</p>
+      {connection.loading ? (
+        <Loading />
+      ) : connection.error ? (
+        <ErrorState error={connection.error} retry={() => void connection.reload()} />
+      ) : (
+        <div className="space-y-1 text-sm">
+          <p>
+            {t(
+              connection.data?.status === "connected"
+                ? "connected"
+                : connection.data?.status === "reconnect_required"
+                  ? "googleReconnectRequired"
+                  : "disconnected",
+            )}
+          </p>
+          {typeof connection.data?.email === "string" && (
+            <p className="break-all text-muted-foreground">{connection.data.email}</p>
+          )}
+        </div>
+      )}
+      <Button variant="outline" asChild>
+        <Link href="/integrations">{t("manageGoogle")}</Link>
+      </Button>
+    </section>
+  );
+}
+function DashboardPreferences({
+  values,
+  change,
+}: {
+  values: Preferences;
+  change: (key: keyof Preferences, value: unknown) => void;
+}) {
+  const { t } = useLocale();
+  const widgets = values.dashboardLayout?.widgets ?? defaultDashboardWidgets();
+  return (
+    <section className="surface space-y-4">
+      <h2 className="text-lg font-semibold">{t("customize")}</h2>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {widgets.map((widget) => (
+          <label key={widget.id} className="flex items-center gap-3 rounded-xl border p-3">
+            <input
+              type="checkbox"
+              className="size-5 accent-violet-600"
+              checked={widget.visible}
+              onChange={(event) =>
+                change("dashboardLayout", {
+                  version: 1,
+                  widgets: widgets.map((entry) =>
+                    entry.id === widget.id ? { ...entry, visible: event.target.checked } : entry,
+                  ),
+                })
+              }
+            />
+            {t(widget.id)}
+          </label>
+        ))}
+      </div>
+    </section>
   );
 }
 function Sessions() {

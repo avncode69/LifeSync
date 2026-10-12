@@ -44,7 +44,6 @@ export const navigation = [
   { key: "health", path: "/health", icon: Heart },
   { key: "finance", path: "/finance", icon: CircleDollarSign },
   { key: "ai", path: "/ai", icon: Sparkles },
-  { key: "workspace", path: "/integrations", icon: CalendarDays },
   { key: "notifications", path: "/notifications", icon: Bell },
   { key: "settings", path: "/settings", icon: Settings2 },
   { key: "trash", path: "/trash", icon: Trash2 },
@@ -222,7 +221,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 {t(
                   pathname === "/admin"
                     ? "admin"
-                    : (navigation.find((item) => item.path === pathname)?.key ?? "dashboard"),
+                    : pathname === "/profile"
+                      ? "profile"
+                      : pathname === "/personalization"
+                        ? "personalization"
+                        : pathname === "/integrations"
+                          ? "integrations"
+                          : (navigation.find((item) => item.path === pathname)?.key ?? "dashboard"),
                 )}
               </div>
             </div>

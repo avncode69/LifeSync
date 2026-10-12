@@ -13,6 +13,7 @@ import {
   Sprout,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSavedAccount } from "@/lib/saved-account";
 import { AuthForm } from "./auth-form";
 import { AppearanceControls, useLocale } from "./providers";
 
@@ -44,6 +45,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
 }
 export function PublicHeader() {
   const { t } = useLocale();
+  const { account, checking } = useSavedAccount();
   return (
     <header className="mx-auto flex w-full max-w-7xl shrink-0 flex-wrap items-center justify-between gap-4 px-5 py-5">
       <Logo />
@@ -54,12 +56,14 @@ export function PublicHeader() {
       </nav>
       <div className="flex items-center gap-2">
         <AppearanceControls />
-        <Button variant="ghost" asChild>
-          <a href="/login">{t("login")}</a>
+        <Button variant="ghost" asChild disabled={checking}>
+          <a href={account ? "/dashboard" : "/login"}>{t(account ? "backToAccount" : "login")}</a>
         </Button>
-        <Button asChild className="hidden min-h-11 sm:inline-flex">
-          <a href="/register">{t("register")}</a>
-        </Button>
+        {!account && (
+          <Button asChild className="hidden min-h-11 sm:inline-flex">
+            <a href="/register">{t("register")}</a>
+          </Button>
+        )}
       </div>
     </header>
   );

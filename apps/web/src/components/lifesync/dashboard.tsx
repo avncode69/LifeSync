@@ -10,6 +10,7 @@ import {
   Heart,
   Inbox,
   Layers,
+  Plus,
   Settings2,
   Sparkles,
   Sprout,
@@ -19,6 +20,11 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api, errorKey, label, type Row, useApi } from "@/lib/api";
+import {
+  defaultDashboardWidgets as defaults,
+  dashboardDefinitions as definitions,
+  type DashboardWidget as Widget,
+} from "@/lib/dashboard-layout";
 import { localDate } from "@/lib/time";
 import { Capture } from "./capture";
 import { LifeSelect } from "./controls";
@@ -26,18 +32,6 @@ import { useLocale } from "./providers";
 import { useAccount } from "./shell";
 import { ErrorState, Loading } from "./states";
 
-const definitions = [
-  { id: "greeting", path: "/dashboard", module: "dashboard" },
-  { id: "priorityTasks", path: "/tasks", module: "tasks" },
-  { id: "quickCapture", path: "/inbox", module: "inbox" },
-  { id: "todayCalendar", path: "/calendar", module: "calendar" },
-  { id: "projects", path: "/projects", module: "projects" },
-  { id: "financeSummary", path: "/finance", module: "finance" },
-  { id: "healthSummary", path: "/health", module: "health" },
-  { id: "habits", path: "/habits", module: "habits" },
-  { id: "aiInput", path: "/ai", module: "ai" },
-  { id: "upcomingReminders", path: "/notifications", module: "dashboard" },
-];
 const widgetIcons = {
   todayCalendar: CalendarDays,
   priorityTasks: CheckCheck,
@@ -58,15 +52,6 @@ const widgetColors: Record<string, string> = {
   quickCapture: "text-cyan-600 dark:text-cyan-400",
   aiInput: "text-cyan-600 dark:text-cyan-400",
 };
-type Widget = { id: string; visible: boolean; size: "small" | "medium" | "large"; position: number };
-function defaults(): Widget[] {
-  return definitions.map((definition, i) => ({
-    id: definition.id,
-    visible: true,
-    size: definition.id === "greeting" ? "large" : "medium",
-    position: i,
-  }));
-}
 export function Dashboard() {
   const { t, locale } = useLocale();
   const account = useAccount();
@@ -114,44 +99,51 @@ export function Dashboard() {
     habits: "habits",
     projects: "projects",
   };
+  const emptyKeys: Record<string, string> = {
+    priorityTasks: "dashboardNoTasks",
+    todayCalendar: "dashboardNoEvents",
+    projects: "dashboardNoProjects",
+    financeSummary: "dashboardNoAccounts",
+    habits: "dashboardNoHabits",
+    upcomingReminders: "dashboardNoReminders",
+  };
+  const actionKeys: Record<string, string> = {
+    priorityTasks: "dashboardAddTask",
+    todayCalendar: "dashboardPlanEvent",
+    projects: "dashboardAddProject",
+    financeSummary: "dashboardAddAccount",
+    habits: "dashboardAddHabit",
+    upcomingReminders: "reminders",
+  };
+  const visibleWidgets = widgets.filter(
+    (widget) =>
+      widget.visible &&
+      !account.preferences?.hiddenModules.includes(
+        definitions.find((entry) => entry.id === widget.id)?.module as Preferences["hiddenModules"][number],
+      ),
+  );
+  const showGreeting = visibleWidgets.some((widget) => widget.id === "greeting");
   function empty(id: string) {
-    const Icon = widgetIcons[id as keyof typeof widgetIcons] ?? Inbox;
     return (
-      <div className="dashboard-empty">
-        <Icon className={`size-6 ${widgetColors[id] ?? "text-muted-foreground"}`} />
-        <p>{t("empty")}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-muted/40 px-3 py-3">
+        <p className="text-sm text-muted-foreground">{t(emptyKeys[id] ?? "empty")}</p>
         <Link
-          className="text-primary underline-offset-4 hover:underline"
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-lg text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
           href={definitions.find((entry) => entry.id === id)?.path ?? "/dashboard"}
         >
-          {t("emptyDescription")} <ArrowRight className="ml-1 inline size-3" />
+          <Plus className="size-3.5" /> {t(actionKeys[id] ?? "create")}
         </Link>
       </div>
     );
   }
   function content(id: string) {
-    if (id === "greeting")
-      return (
-        <div className="dashboard-greeting">
-          <p className="text-xs font-medium uppercase tracking-wider text-primary">
-            {new Intl.DateTimeFormat(locale, {
-              dateStyle: "full",
-              timeZone: account.preferences?.timezone ?? "Europe/Kyiv",
-            }).format(new Date())}
-          </p>
-          <h2 className="mt-2 font-semibold tracking-tight">
-            {t("welcome")}, {String(account.user?.name ?? "").split(" ")[0]}
-          </h2>
-          <p className="mt-2 text-muted-foreground">{t("focus")}</p>
-        </div>
-      );
     if (id === "quickCapture") return <Capture onDone={() => void data.reload()} />;
     if (id === "aiInput")
       return (
         <form action="/ai" className="space-y-3">
-          <textarea
+          <input
             name="prompt"
-            className="control min-h-24"
+            className="control"
             aria-label={t("aiInput")}
             placeholder={t("aiHelp")}
             maxLength={5000}
@@ -162,6 +154,7 @@ export function Dashboard() {
         </form>
       );
     if (id === "financeSummary") {
+      if (finance.loading) return <Loading />;
       if (finance.error) return <ErrorState error={finance.error} retry={() => void finance.reload()} />;
       const accounts = finance.data?.accounts as Row[] | undefined;
       return accounts?.length ? (
@@ -180,6 +173,7 @@ export function Dashboard() {
       );
     }
     if (id === "healthSummary") {
+      if (health.loading) return <Loading />;
       if (health.error) return <ErrorState error={health.error} retry={() => void health.reload()} />;
       const macros = health.data?.macros as Record<string, string> | undefined;
       return (
@@ -188,42 +182,70 @@ export function Dashboard() {
             { key: "calories", value: macros?.calories },
             { key: "water", value: health.data?.waterMl },
           ].map((item) => (
-            <div key={item.key} className="dashboard-row rounded-xl p-4">
+            <div key={item.key} className="rounded-xl bg-muted/40 p-3">
               <p className="text-xs text-muted-foreground">{t(item.key)}</p>
-              <p className="mt-2 text-2xl font-semibold">{String(item.value ?? 0)}</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">
+                {String(item.value ?? 0)}
+                {item.key === "water" && (
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">{t("ml")}</span>
+                )}
+              </p>
             </div>
           ))}
         </div>
       );
     }
+    if (id === "upcomingReminders" && reminders.loading) return <Loading />;
+    if (id === "upcomingReminders" && reminders.error)
+      return <ErrorState error={reminders.error} retry={() => void reminders.reload()} />;
     const rows = id === "upcomingReminders" ? reminders.data : data.data?.[keyFor[id]];
-    const today = new Intl.DateTimeFormat("en-CA", {
-      timeZone: account.preferences?.timezone ?? "Europe/Kyiv",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
+    const today = localDate(account.preferences?.timezone ?? "Europe/Kyiv");
     const filtered =
       id === "todayCalendar"
         ? rows?.filter((row) =>
             row.allDay
               ? String(row.startDate) <= today && String(row.endDate) > today
               : !!row.startsAt &&
-                localDate(account.preferences?.timezone ?? "Europe/Kyiv", new Date(String(row.startsAt))) === today,
+                localDate(account.preferences?.timezone ?? "Europe/Kyiv", new Date(String(row.startsAt))) <= today &&
+                localDate(
+                  account.preferences?.timezone ?? "Europe/Kyiv",
+                  row.endsAt ? new Date(new Date(String(row.endsAt)).getTime() - 1) : new Date(String(row.startsAt)),
+                ) >= today,
           )
         : id === "priorityTasks"
           ? rows?.filter((row) => !["done", "cancelled"].includes(String(row.status)))
           : rows;
     return filtered?.length ? (
-      <div className="space-y-3">
+      <div className="divide-y divide-border">
         {filtered.slice(0, 5).map((row) => (
-          <div key={row.id} className="dashboard-row flex items-center gap-3 rounded-xl px-3 py-2.5">
-            <span className="size-2 shrink-0 rounded-full bg-primary" />
-            <span className="truncate text-sm">{label(row)}</span>
+          <Link
+            key={row.id}
+            href={`${definitions.find((entry) => entry.id === id)?.path ?? "/dashboard"}?item=${encodeURIComponent(String(row.id))}`}
+            className="flex min-h-12 items-center gap-3 rounded-lg px-1 py-3 transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring"
+          >
+            {id === "priorityTasks" ? (
+              <span className="size-4 shrink-0 rounded-full border-2 border-muted-foreground/35" />
+            ) : (
+              <span
+                className={`size-2 shrink-0 rounded-full ${id === "todayCalendar" ? "bg-violet-500" : "bg-primary"}`}
+              />
+            )}
+            <span className="min-w-0 flex-1 truncate text-sm">{label(row)}</span>
+            {id === "todayCalendar" && (
+              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                {row.allDay
+                  ? t("allDay")
+                  : new Intl.DateTimeFormat(locale, {
+                      timeZone: account.preferences?.timezone ?? "Europe/Kyiv",
+                      timeStyle: "short",
+                      hour12: account.preferences?.timeFormat === "12h",
+                    }).format(new Date(String(row.startsAt)))}
+              </span>
+            )}
             {row.status ? (
               <span className="ml-auto shrink-0 text-xs text-muted-foreground">{t(String(row.status))}</span>
             ) : null}
-          </div>
+          </Link>
         ))}
       </div>
     ) : (
@@ -233,7 +255,22 @@ export function Dashboard() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="page-heading">{t("dashboard")}</h1>
+        <div>
+          <h1 className="page-heading">
+            {showGreeting ? t("today") : t("dashboard")}
+            {showGreeting && account.user?.name ? (
+              <span className="font-normal text-muted-foreground"> · {String(account.user.name).split(" ")[0]}</span>
+            ) : null}
+          </h1>
+          {showGreeting && (
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {new Intl.DateTimeFormat(locale, {
+                dateStyle: "full",
+                timeZone: account.preferences?.timezone ?? "Europe/Kyiv",
+              }).format(new Date())}
+            </p>
+          )}
+        </div>
         <Button variant="outline" className="min-h-11 gap-2" onClick={() => setCustomize(!customize)}>
           <Settings2 className="size-4" />
           {t("customize")}
@@ -312,29 +349,17 @@ export function Dashboard() {
       ) : data.error ? (
         <ErrorState error={data.error} retry={() => void data.reload()} />
       ) : (
-        <div className="grid items-start gap-4 md:grid-cols-2">
-          {widgets
-            .filter(
-              (widget) =>
-                widget.visible &&
-                !account.preferences?.hiddenModules.includes(
-                  definitions.find((entry) => entry.id === widget.id)?.module as Preferences["hiddenModules"][number],
-                ),
-            )
+        <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {visibleWidgets
+            .filter((widget) => widget.id !== "greeting")
             .map((widget) => {
               const Icon = widgetIcons[widget.id as keyof typeof widgetIcons] ?? Inbox;
-              if (widget.id === "greeting")
-                return (
-                  <section key={widget.id} className={widget.size === "large" ? "md:col-span-2" : ""}>
-                    {content(widget.id)}
-                  </section>
-                );
               return (
                 <section
                   key={widget.id}
-                  className={`surface dashboard-card ${widget.size === "large" ? "md:col-span-2" : ""}`}
+                  className={`surface dashboard-card ${widget.size === "large" ? "md:col-span-2" : widget.size === "small" ? "!p-4" : ""}`}
                 >
-                  <div className="dashboard-card-header flex items-center justify-between">
+                  <div className="mb-3 flex items-center justify-between gap-3">
                     <h2 className="flex items-center gap-2 text-sm font-semibold">
                       <Icon className={`size-4 ${widgetColors[widget.id] ?? "text-primary"}`} />
                       {t(widget.id)}
@@ -342,7 +367,7 @@ export function Dashboard() {
                     <Link
                       href={definitions.find((entry) => entry.id === widget.id)?.path ?? "/dashboard"}
                       aria-label={t(widget.id)}
-                      className="rounded-lg p-2 text-muted-foreground hover:bg-muted"
+                      className="rounded-lg p-2 text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
                     >
                       <ArrowRight className="size-4" />
                     </Link>

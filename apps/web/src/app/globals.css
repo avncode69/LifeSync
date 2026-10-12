@@ -387,11 +387,20 @@ body::before {
 .lifesync-select-trigger.w-auto {
   width: auto;
 }
+.lifesync-date-trigger.w-auto {
+  width: auto;
+}
 .lifesync-table-search {
   padding-left: 2.25rem;
 }
 .lifesync-profile-menu {
   background: var(--background);
+}
+.lifesync-color-menu {
+  background: var(--background);
+}
+.dark .lifesync-color-menu {
+  background: var(--color-neutral-900);
 }
 .dark .lifesync-profile-menu {
   background: var(--color-neutral-800);

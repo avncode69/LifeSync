@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { auth, errorKey } from "@/lib/api";
+import { readSavedAccount, useSavedAccount } from "@/lib/saved-account";
 import { AppearanceControls, useLocale } from "./providers";
 import { Logo } from "./public";
 import { TurnstileField, usePublicConfig } from "./turnstile";
@@ -11,13 +12,17 @@ type Mode = "login" | "register" | "forgot" | "reset" | "verify";
 export function AuthForm({ mode, embedded = false }: { mode: Mode; embedded?: boolean }) {
   const { t } = useLocale();
   const config = usePublicConfig();
+  const { account, checking } = useSavedAccount(mode === "login");
+  useEffect(() => {
+    if (mode === "login" && account) location.replace("/dashboard");
+  }, [mode, account]);
   const [token, setToken] = useState("");
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending) return;
+    if (pending || (mode === "login" && checking)) return;
     const values = Object.fromEntries(new FormData(event.currentTarget));
     const shape =
       mode === "reset"
@@ -43,6 +48,10 @@ export function AuthForm({ mode, embedded = false }: { mode: Mode; embedded?: bo
     try {
       const callbackURL = `${location.origin}/onboarding`;
       if (mode === "login") {
+        if (await readSavedAccount()) {
+          location.replace("/dashboard");
+          return;
+        }
         await auth("/sign-in/email", { email: values.email, password: values.password, callbackURL });
         location.assign("/dashboard");
       } else if (mode === "register") {
@@ -76,6 +85,10 @@ export function AuthForm({ mode, embedded = false }: { mode: Mode; embedded?: bo
   async function google() {
     setPending(true);
     try {
+      if (mode === "login" && (await readSavedAccount())) {
+        location.replace("/dashboard");
+        return;
+      }
       const result = await auth<{ url?: string }>("/sign-in/social", {
         provider: "google",
         callbackURL: `${location.origin}/onboarding`,
@@ -203,7 +216,11 @@ export function AuthForm({ mode, embedded = false }: { mode: Mode; embedded?: bo
             )}
             <Button
               variant={glass ? "secondary" : "default"}
-              disabled={pending || (!!config?.turnstileSiteKey && (mode === "register" || mode === "forgot") && !token)}
+              disabled={
+                pending ||
+                (mode === "login" && (checking || !!account)) ||
+                (!!config?.turnstileSiteKey && (mode === "register" || mode === "forgot") && !token)
+              }
               type="submit"
               className={glass ? "auth-login-submit min-h-11 w-full rounded-xl" : "min-h-12 w-full"}
             >

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api, errorKey, type Row, useApi } from "@/lib/api";
+import { calendarDayDraft, calendarDay as dayString } from "@/lib/calendar-day";
+import { hexColor } from "@/lib/color-value";
 import { localDate, moveCalendarMonth } from "@/lib/time";
 import { useLocale } from "./providers";
 import { ResourceEditor, ResourcePanel } from "./resource";
@@ -52,9 +54,6 @@ export function Calendar() {
     day.setDate(day.getDate() + index);
     return day;
   });
-  function dayString(day: Date) {
-    return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
-  }
   const events = useApi<Row[]>(
     `/calendar/occurrences?from=${dayString(days[0])}&to=${dayString(days[days.length - 1])}`,
   );
@@ -79,6 +78,10 @@ export function Calendar() {
     if (view !== "month") next.setDate(next.getDate() + direction * (view === "week" ? 7 : 1));
     setDate(next);
   }
+  function createOnDay(day: Date) {
+    setInitial(calendarDayDraft(day));
+    setEditor("new");
+  }
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap justify-between gap-4">
@@ -86,14 +89,7 @@ export function Calendar() {
           <h1 className="page-heading">{t("calendar")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{timezone}</p>
         </div>
-        <Button
-          className="min-h-11 gap-2"
-          disabled={events.loading}
-          onClick={() => {
-            setInitial(undefined);
-            setEditor("new");
-          }}
-        >
+        <Button className="min-h-11 gap-2" disabled={events.loading} onClick={() => createOnDay(date)}>
           <Plus />
           {t("create")}
         </Button>
@@ -141,24 +137,25 @@ export function Calendar() {
               {days.map((day) => (
                 <section
                   key={day.toISOString()}
-                  className={`min-h-32 border-b border-r p-2 ${day.getMonth() !== date.getMonth() && view === "month" ? "bg-muted/30" : ""} ${view !== "month" ? "min-h-80" : ""}`}
+                  className={`group relative min-h-32 border-b border-r p-2 ${day.getMonth() !== date.getMonth() && view === "month" ? "bg-muted/30" : ""} ${view !== "month" ? "min-h-80" : ""}`}
                 >
                   <button
                     type="button"
-                    aria-label={`${t("create")} ${dayString(day)}`}
-                    className={`mb-2 flex size-8 items-center justify-center rounded-full text-xs ${dayString(day) === localDate(timezone) ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-                    onClick={() => {
-                      setInitial({
-                        allDay: true,
-                        startDate: dayString(day),
-                        endDate: dayString(new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1)),
-                      });
-                      setEditor("new");
-                    }}
+                    aria-label={`${t("create")} · ${new Intl.DateTimeFormat(locale, { dateStyle: "full" }).format(day)}`}
+                    className="absolute inset-0 transition-colors hover:bg-primary/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+                    onClick={() => createOnDay(day)}
+                  >
+                    <Plus
+                      aria-hidden="true"
+                      className="absolute right-3 top-3 size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                    />
+                  </button>
+                  <span
+                    className={`pointer-events-none relative mb-2 flex size-8 items-center justify-center rounded-full text-xs font-medium ${dayString(day) === localDate(timezone) ? "bg-primary text-primary-foreground" : ""}`}
                   >
                     {day.getDate()}
-                  </button>
-                  <div className="space-y-1">
+                  </span>
+                  <div className="pointer-events-none relative space-y-1">
                     {events.data
                       ?.filter((event) => belongs(event, day))
                       .map((event) => (
@@ -166,7 +163,15 @@ export function Calendar() {
                           type="button"
                           key={String(event.occurrenceId ?? event.id)}
                           onClick={() => void editSeries(event)}
-                          className="block w-full rounded-md border-l-2 border-primary bg-primary/10 p-1.5 text-left text-xs text-primary"
+                          className="pointer-events-auto block w-full rounded-md border-l-2 border-primary bg-primary/10 p-1.5 text-left text-xs text-foreground transition-colors hover:brightness-95 dark:hover:brightness-125 focus-visible:outline-2 focus-visible:outline-ring"
+                          style={
+                            hexColor(event.color)
+                              ? {
+                                  borderLeftColor: hexColor(event.color),
+                                  backgroundColor: `${hexColor(event.color)}18`,
+                                }
+                              : undefined
+                          }
                         >
                           <span className="block truncate font-medium">{String(event.title)}</span>
                           {!event.allDay && (
@@ -186,7 +191,6 @@ export function Calendar() {
         </div>
       )}
       <ResourcePanel resource="reminderRules" title="reminders" />
-      <ResourcePanel resource="driveLinks" />
       {editor && (
         <ResourceEditor
           resource="calendarEvents"

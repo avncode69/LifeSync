@@ -2,6 +2,21 @@ import { describe, expect, it } from "vitest";
 import { preferencesSchema, resourceRegistry, updatePreferencesSchema } from "./index";
 
 describe("untrusted API inputs", () => {
+  it("accepts optional calendar event colors and color-only patches", () => {
+    const event = {
+      title: "Event",
+      allDay: true,
+      startDate: "2026-10-12",
+      endDate: "2026-10-13",
+    };
+    expect(resourceRegistry.calendarEvents.createSchema.parse({ ...event, color: "#aAbB09" }).color).toBe("#aAbB09");
+    expect(resourceRegistry.calendarEvents.createSchema.parse(event)).not.toHaveProperty("color");
+    expect(resourceRegistry.calendarEvents.updateSchema.parse({ color: "#123456" })).toEqual({ color: "#123456" });
+    expect(resourceRegistry.calendarEvents.updateSchema.parse({ title: "Rename" })).toEqual({ title: "Rename" });
+  });
+  it.each(["red", "#123", "#12345678", "#zz0000", "123456", null])("rejects invalid calendar colors: %s", (color) => {
+    expect(resourceRegistry.calendarEvents.updateSchema.safeParse({ color }).success).toBe(false);
+  });
   it("does not overwrite existing settings on a theme-only patch", () =>
     expect(updatePreferencesSchema.parse({ theme: "dark" })).toEqual({ theme: "dark" }));
   it("rejects a budget that does not start on the first day of a month", () =>

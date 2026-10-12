@@ -12,8 +12,14 @@ export function Habits() {
   const { t } = useLocale();
   const habits = useApi<Row[]>("/habits?limit=100");
   const [editor, setEditor] = useState<Row | "new">();
+  const [section, setSection] = useState("habits");
   useEffect(() => {
-    const target = new URLSearchParams(location.search).get("item");
+    const params = new URLSearchParams(location.search);
+    const resource = params.get("resource");
+    if (resource === "habitEntries") setSection("entries");
+    if (resource === "reminderRules") setSection("reminders");
+    if (resource && resource !== "habits") return;
+    const target = params.get("item");
     if (!target) return;
     let active = true;
     void api<Row>(`/habits/${encodeURIComponent(target)}`)
@@ -30,27 +36,69 @@ export function Habits() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="page-heading">{t("habits")}</h1>
-        <Button disabled={habits.loading} className="min-h-11 gap-2" onClick={() => setEditor("new")}>
-          <Plus />
-          {t("create")}
-        </Button>
-      </div>
-      {habits.loading ? (
-        <Loading />
-      ) : habits.error ? (
-        <ErrorState error={habits.error} retry={() => void habits.reload()} />
-      ) : !habits.data?.length ? (
-        <Empty />
-      ) : (
-        <div className="grid gap-5 xl:grid-cols-2">
-          {habits.data.map((habit) => (
-            <HabitCard key={habit.id} row={habit} edit={() => setEditor(habit)} />
-          ))}
+        <div>
+          <h1 className="page-heading">{t("habits")}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{t("habitsHint")}</p>
         </div>
-      )}
-      <ResourcePanel resource="habitEntries" title="entries" />
-      <ResourcePanel resource="reminderRules" title="reminders" />
+        {section === "habits" && (
+          <Button disabled={habits.loading} className="min-h-11 gap-2" onClick={() => setEditor("new")}>
+            <Plus />
+            {t("create")}
+          </Button>
+        )}
+      </div>
+      <div
+        role="tablist"
+        aria-label={t("habits")}
+        className="grid max-w-2xl grid-cols-3 gap-1 rounded-xl border bg-muted/40 p-1"
+      >
+        {["habits", "entries", "reminders"].map((key) => (
+          <button
+            key={key}
+            id={`habit-tab-${key}`}
+            role="tab"
+            type="button"
+            aria-selected={section === key}
+            tabIndex={section === key ? 0 : -1}
+            aria-controls={`habit-panel-${key}`}
+            onClick={() => setSection(key)}
+            onKeyDown={(event) => {
+              const sections = ["habits", "entries", "reminders"];
+              if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+              event.preventDefault();
+              const index =
+                event.key === "Home"
+                  ? 0
+                  : event.key === "End"
+                    ? 2
+                    : (sections.indexOf(key) + (event.key === "ArrowRight" ? 1 : 2)) % 3;
+              setSection(sections[index]);
+              document.getElementById(`habit-tab-${sections[index]}`)?.focus();
+            }}
+            className={`min-h-11 rounded-lg px-2 text-sm font-medium transition ${section === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+          >
+            {t(key)}
+          </button>
+        ))}
+      </div>
+      <section role="tabpanel" id={`habit-panel-${section}`} aria-labelledby={`habit-tab-${section}`}>
+        {section === "habits" &&
+          (habits.loading ? (
+            <Loading />
+          ) : habits.error ? (
+            <ErrorState error={habits.error} retry={() => void habits.reload()} />
+          ) : !habits.data?.length ? (
+            <Empty />
+          ) : (
+            <div className="grid gap-5 xl:grid-cols-2">
+              {habits.data.map((habit) => (
+                <HabitCard key={habit.id} row={habit} edit={() => setEditor(habit)} />
+              ))}
+            </div>
+          ))}
+        {section === "entries" && <ResourcePanel resource="habitEntries" title="entries" />}
+        {section === "reminders" && <ResourcePanel resource="reminderRules" title="reminders" />}
+      </section>
       {editor && (
         <ResourceEditor
           resource="habits"

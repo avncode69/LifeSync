@@ -365,6 +365,7 @@ export const calendarEvents = pgTable(
     ...owned(),
     title: text("title").notNull(),
     description: text("description"),
+    color: text("color"),
     projectId: uuid("project_id"),
     allDay: boolean("all_day").notNull().default(false),
     startDate: date("start_date"),

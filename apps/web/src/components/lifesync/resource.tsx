@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { api, errorKey, label, type Row, useApi } from "@/lib/api";
+import { omitStoredNull } from "@/lib/editor-null";
 import { displayInstant, inputInstant, localInput } from "@/lib/time";
+import { ColorField } from "./color-field";
 import { LifeDateInput, LifeSelect } from "./controls";
 import { useLocale } from "./providers";
 import { RecurrenceInput } from "./recurrence";
@@ -28,6 +30,11 @@ type Property = {
   properties?: Record<string, Property>;
 };
 const targetFields = ["projectId", "taskId", "eventId", "transactionId", "inboxItemId", "habitId"];
+function notifyResourceChange(resource: ResourceName) {
+  const path = resourceRegistry[resource].path;
+  if (path.startsWith("/finance/")) window.dispatchEvent(new Event("lifesync:finance"));
+  if (path.startsWith("/health/")) window.dispatchEvent(new Event("lifesync:health"));
+}
 function normalize(property: Property): Property {
   const alternative = property.anyOf?.find((entry) => entry.type !== "null");
   return alternative ? { ...property, ...alternative } : property;
@@ -154,9 +161,10 @@ export function ResourceEditor({
     const input: Record<string, unknown> = {};
     const parsing: Record<string, string> = {};
     for (const [key, property] of Object.entries(properties)) {
+      if (omitStoredNull(values[key], property, !!json.required?.includes(key))) continue;
       if (key === "parentTaskId") continue;
       const value = values[key];
-      if (value === "" || value === undefined) {
+      if (value === "" || value === undefined || (key === "color" && value === null)) {
         if (row && key === "recurrenceRule") input[key] = null;
         continue;
       }
@@ -198,7 +206,7 @@ export function ResourceEditor({
           headers: { "Idempotency-Key": idempotency.current },
         });
       toast.success(t("saved"));
-      if (resourceRegistry[resource].path.startsWith("/finance/")) window.dispatchEvent(new Event("lifesync:finance"));
+      notifyResourceChange(resource);
       onSaved();
       onClose();
     } catch (error) {
@@ -299,6 +307,8 @@ export function ResourceEditor({
                     ))}
                   </LifeSelect>
                 );
+              else if (key === "color")
+                input = <ColorField {...common} value={String(value ?? "")} onChange={(color) => update(key, color)} />;
               else if (key === "recurrenceRule")
                 input = (
                   <RecurrenceInput
@@ -386,7 +396,7 @@ export function ResourceEditor({
                   ) : (
                     <input
                       {...common}
-                      type={type === "integer" || type === "number" ? "number" : key === "color" ? "color" : "text"}
+                      type={type === "integer" || type === "number" ? "number" : "text"}
                       min={property.minimum}
                       max={property.maximum}
                       minLength={property.minLength}
@@ -441,18 +451,26 @@ export function ResourcePanel({
   resource,
   title,
   initial,
+  editorInitial,
+  createLabel,
   renderExtra,
 }: {
   resource: ResourceName;
   title?: string;
   initial?: Record<string, unknown>;
+  editorInitial?: Record<string, unknown>;
+  createLabel?: string;
   renderExtra?: (row: Row, refresh: () => void) => React.ReactNode;
 }) {
   const { t, locale } = useLocale();
   const { preferences } = useAccount();
   const path = resourceRegistry[resource].path;
   const [query, setQuery] = useState("");
-  const { data, error, loading, reload } = useApi<Row[]>(`${path}?limit=100`);
+  const queryParams = new URLSearchParams({ limit: "100" });
+  for (const [key, value] of Object.entries(initial ?? {})) {
+    if (key.endsWith("Id") && typeof value === "string") queryParams.set(key, value);
+  }
+  const { data, error, loading, reload } = useApi<Row[]>(`${path}?${queryParams}`);
   const [editor, setEditor] = useState<Row | "new">();
   const openedLink = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -479,12 +497,16 @@ export function ResourcePanel({
   async function remove(row: Row) {
     try {
       await api(`${path}/${row.id}`, { method: "DELETE" });
+      notifyResourceChange(resource);
       toast.success(t("removed"), {
         action: {
           label: t("undo"),
           onClick: () => {
             void api(`${path}/${row.id}/restore`, { method: "POST" })
-              .then(reload)
+              .then(() => {
+                notifyResourceChange(resource);
+                return reload();
+              })
               .catch((error) => toast.error(t(errorKey(error))));
           },
         },
@@ -500,7 +522,7 @@ export function ResourcePanel({
         <h2 className="text-xl font-semibold tracking-tight">{t(title ?? resource)}</h2>
         <Button disabled={loading} onClick={() => setEditor("new")} className="min-h-11 gap-2">
           <Plus />
-          {t("create")}
+          {t(createLabel ?? "create")}
         </Button>
       </div>
       <input
@@ -600,7 +622,7 @@ export function ResourcePanel({
         <ResourceEditor
           resource={resource}
           row={editor === "new" ? undefined : editor}
-          initial={initial}
+          initial={{ ...initial, ...editorInitial }}
           onClose={() => setEditor(undefined)}
           onSaved={() => void reload()}
         />

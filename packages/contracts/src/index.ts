@@ -109,6 +109,7 @@ export const inboxItemCreateSchema = z.strictObject({
 const calendarBase = z.strictObject({
   title,
   description: note.optional(),
+  color,
   projectId: ref,
   allDay: z.boolean().default(false),
   startDate: dateSchema.nullable().optional(),

@@ -605,7 +605,6 @@ export function Inbox() {
           },
           { resource: "inboxBoxes", label: "boxes" },
           { resource: "reminderRules", label: "reminders" },
-          { resource: "driveLinks", label: "driveLinks" },
         ]}
       />
     </div>
