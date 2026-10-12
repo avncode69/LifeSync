@@ -314,7 +314,7 @@ export function createApp(dependencies: AppDependencies) {
       .from(schema.userPreferences)
       .where(eq(schema.userPreferences.userId, c.get("identity").id))
       .limit(1);
-    return c.json({ data: row ?? preferencesSchema.parse({}) });
+    return c.json({ data: row ? { ...row, dashboardLayout: row.dashboardLayout ?? undefined } : preferencesSchema.parse({}) });
   });
   app.patch("/api/v1/preferences", async (c) => {
     const parsed = updatePreferencesSchema.safeParse(await c.req.json());
