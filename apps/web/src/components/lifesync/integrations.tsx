@@ -10,11 +10,12 @@ import { ErrorState, Loading } from "./states";
 export function Integrations() {
   const { t } = useLocale();
   const connection = useApi<Row>("/integrations/google");
-  const connected = !!connection.data?.email;
-  const calendars = useApi<Row[]>(connected ? "/integrations/google/calendars" : null);
-  const conflicts = useApi<Row[]>(connected ? "/integrations/google/conflicts" : null);
-  const [calendar, setCalendar] = useState(true);
-  const [drive, setDrive] = useState(false);
+  const connected = connection.data?.status === "connected";
+  const calendarConnected = connected && connection.data?.calendarEnabled === true;
+  const calendars = useApi<Row[]>(calendarConnected ? "/integrations/google/calendars" : null);
+  const conflicts = useApi<Row[]>(calendarConnected ? "/integrations/google/conflicts" : null);
+  const [calendar, setCalendar] = useState(false);
+  const [drive, setDrive] = useState(true);
   const [pending, setPending] = useState(false);
   const [file, setFile] = useState("");
   const [metadata, setMetadata] = useState<Record<string, unknown>>();
@@ -122,14 +123,16 @@ export function Integrations() {
             </Button>
             {connected && (
               <>
-                <Button
-                  disabled={pending}
-                  variant="outline"
-                  className="min-h-11"
-                  onClick={() => void action("/sync", {})}
-                >
-                  {t("sync")}
-                </Button>
+                {calendarConnected && (
+                  <Button
+                    disabled={pending}
+                    variant="outline"
+                    className="min-h-11"
+                    onClick={() => void action("/sync", {})}
+                  >
+                    {t("sync")}
+                  </Button>
+                )}
                 <Button
                   disabled={pending}
                   variant="destructive"
@@ -145,26 +148,28 @@ export function Integrations() {
       )}
       {connected && (
         <>
-          <section className="surface space-y-4">
-            <h2 className="text-xl font-semibold">{t("calendar")}</h2>
-            {calendars.error ? (
-              <ErrorState error={calendars.error} retry={() => void calendars.reload()} />
-            ) : (
-              calendars.data?.map((row) => (
-                <label key={row.id} className="flex items-center gap-3 rounded-xl border p-3">
-                  <input
-                    type="checkbox"
-                    checked={!!row.selected}
-                    onChange={(event) =>
-                      void action(`/calendars/${row.id}`, { selected: event.target.checked }, "PATCH")
-                    }
-                  />
-                  <span>{String(row.name)}</span>
-                  <span className="ml-auto text-xs text-muted-foreground">{String(row.timezone)}</span>
-                </label>
-              ))
-            )}
-          </section>
+          {calendarConnected && (
+            <section className="surface space-y-4">
+              <h2 className="text-xl font-semibold">{t("calendar")}</h2>
+              {calendars.error ? (
+                <ErrorState error={calendars.error} retry={() => void calendars.reload()} />
+              ) : (
+                calendars.data?.map((row) => (
+                  <label key={row.id} className="flex items-center gap-3 rounded-xl border p-3">
+                    <input
+                      type="checkbox"
+                      checked={!!row.selected}
+                      onChange={(event) =>
+                        void action(`/calendars/${row.id}`, { selected: event.target.checked }, "PATCH")
+                      }
+                    />
+                    <span>{String(row.name)}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{String(row.timezone)}</span>
+                  </label>
+                ))
+              )}
+            </section>
+          )}
           {!!conflicts.data?.length && (
             <section className="surface space-y-4">
               <h2 className="text-xl font-semibold">{t("syncConflict")}</h2>
