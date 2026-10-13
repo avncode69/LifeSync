@@ -12,4 +12,4 @@ Additional user steering: shared site-styled palette replaces native color input
 
 Local verification: web/API/database TypeScript passed; 120 unit tests and 3 isolated integration tests passed. Final production build passed. Browser checked compact dashboard, 375px finance layout, three keyboard-switchable habit tabs, isolated profile/personalization fields, meal portions default 100g, selected calendar day with exclusive next end date, palette with no native color inputs, and pricing/account login redirect using an existing session. Independent reviews fixed shared widget defaults, Google status, stored optional nulls and scoped meal filters. No production data mutations used in UI tests.
 
-Publication: pending.
+Publication: e4d7bb4 deployed to Oracle successfully (deploy exit 0); API and jobs reported healthy on 2026-10-14. Follow-up 9624dc9 is included in the Google integration deployment.
